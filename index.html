@@ -5,112 +5,165 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Küchenmonitor</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
+
   :root {
-    --ink: #1C1B19;
-    --paper: #F2EDE4;
-    --paper-2: #E8E2D4;
+    --bg: #F2F3F6;
+    --card: #FFFFFF;
+    --border: #E1E3E8;
+    --navy: #1B3A63;
+    --navy-dark: #12253F;
+    --navy-light: #2C5088;
+    --text: #1A1A1E;
+    --muted: #6B7280;
+    --green: #1F7A4D;
+    --green-bg: #E4F5EC;
     --amber: #E8A33D;
-    --amber-deep: #C97F1F;
     --rust: #C1443B;
-    --sage: #6B8F58;
-    --steel: #8A8578;
-    --steel-line: #D8D2C3;
+    --rust-bg: #FBEAE8;
+    --led: #141419;
+    --led-amber: #F5A623;
+    --led-green: #35D07F;
+    --led-grey: #7A7E88;
+    --radius-lg: 18px;
+    --radius-md: 12px;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    background: var(--paper);
-    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
   }
-  .nav {
-    display: flex;
-    gap: 0;
-    background: var(--ink);
-    overflow-x: auto;
-  }
-  .nav a {
-    color: var(--paper);
-    text-decoration: none;
-    padding: 12px 16px;
-    font-size: 13px;
-    white-space: nowrap;
-    border-bottom: 2px solid transparent;
-  }
-  .nav a.active { border-bottom-color: var(--amber); color: var(--amber); }
+  h1, h2, h3 { font-family: 'Poppins', sans-serif; font-weight: 700; margin: 0; }
+
+  .nav-wrap { padding: 14px 16px 0; max-width: 900px; margin: 0 auto; }
+  .nav { display: flex; gap: 4px; background: #E9EBEF; border-radius: 14px; padding: 4px; overflow-x: auto; }
+  .nav a { flex: 1; text-align: center; padding: 10px 12px; border-radius: 10px; font-size: 12.5px; font-weight: 600; color: var(--muted); text-decoration: none; white-space: nowrap; }
+  .nav a.active { background: var(--navy); color: #fff; }
+  .monitor .nav-wrap { max-width: 100%; padding: 12px 16px 0; }
+  .monitor .nav { background: #22242B; }
+  .monitor .nav a { color: #9CA0AC; }
+  .monitor .nav a.active { background: var(--led-amber); color: var(--led); }
+
   .wrap { max-width: 900px; margin: 0 auto; padding: 16px; }
-  h1 { font-size: 20px; margin: 4px 0 16px; }
-  h2.section-title { font-size: 15px; margin: 28px 0 10px; border-top: 1px solid var(--steel-line); padding-top: 18px; }
+  h1.page-title { font-size: 22px; margin: 6px 0 16px; }
+  h2.section-title { font-size: 15px; margin: 30px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 14px; box-shadow: 0 1px 3px rgba(20,20,25,0.04);
+  }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 10px; }
-  .card { background: #FFFDF9; border: 1px solid var(--steel-line); border-radius: 6px; padding: 12px; }
-  .stepper { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .stepper { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
   .stepper button {
-    width: 32px; height: 32px; border-radius: 5px; border: 1px solid var(--steel-line);
-    background: var(--paper); font-size: 16px; cursor: pointer;
+    width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--border);
+    background: #FAFBFC; font-size: 16px; cursor: pointer; color: var(--navy); font-weight: 700;
   }
-  .qty { font-size: 16px; min-width: 20px; text-align: center; }
-  .price { color: var(--steel); font-size: 12px; }
+  .qty { font-size: 16px; min-width: 20px; text-align: center; font-weight: 700; }
+  .price { color: var(--muted); font-size: 12px; }
+  .card.ausverkauft { opacity: 0.45; }
+  .card.ausverkauft .stepper button { cursor: not-allowed; }
+  .ausverkauft-tag { color: var(--rust); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+
+  .gesperrt-block { background: #FAFAFB; border: 1px dashed var(--border); border-radius: var(--radius-md); padding: 20px; text-align: center; color: var(--muted); font-size: 13px; }
+
   .bar {
-    position: sticky; bottom: 0; background: var(--ink); color: var(--paper);
+    position: sticky; bottom: 0; background: var(--navy-dark); color: #fff;
     padding: 14px 16px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
-    margin-top: 16px; border-radius: 6px; gap: 12px;
+    margin-top: 16px; border-radius: var(--radius-md); gap: 12px;
   }
-  .bar b { color: var(--amber); }
+  .bar b { color: var(--led-amber); }
+  .hinweis-row { display: flex; align-items: center; gap: 8px; font-size: 13px; width: 100%; margin-top: 4px; }
+  .hinweis-row input { flex: 1; }
   .rueckgeld-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
   .rueckgeld-row input { width: 90px; }
-  .btn { background: var(--amber); color: var(--ink); border: none; border-radius: 5px; padding: 12px 18px; font-size: 14px; cursor: pointer; }
+
+  .btn { background: var(--navy); color: #fff; border: none; border-radius: 11px; padding: 12px 20px; font-size: 14px; font-weight: 600; cursor: pointer; }
   .btn:disabled { opacity: .4; cursor: default; }
-  .btn.secondary { background: var(--paper-2); }
-  input, select { padding: 8px 10px; border: 1px solid var(--steel-line); border-radius: 5px; font-size: 14px; background: #FFFDF9; color: var(--ink); }
+  .btn.secondary { background: #fff; color: var(--navy); border: 1px solid var(--border); }
+  .btn.small { padding: 8px 12px; font-size: 12.5px; border-radius: 8px; }
+
+  input, select { padding: 9px 11px; border: 1px solid var(--border); border-radius: 9px; font-size: 14px; background: #fff; color: var(--text); font-family: inherit; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--steel-line); }
+  th, td { text-align: left; padding: 9px 6px; border-bottom: 1px solid var(--border); }
   .row-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
-  .del { color: var(--rust); cursor: pointer; background: none; border: none; font-size: 13px; }
-  .edit-link { color: var(--amber-deep); cursor: pointer; background: none; border: none; font-size: 13px; margin-right: 10px; }
-  .order-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--steel-line); font-size: 13px; flex-wrap: wrap; }
-  .order-row .meta { color: var(--steel); }
+  .del { color: var(--rust); cursor: pointer; background: none; border: none; font-size: 13px; font-weight: 600; }
+  .edit-link { color: var(--navy); cursor: pointer; background: none; border: none; font-size: 13px; margin-right: 10px; font-weight: 600; }
+  .order-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 13px; flex-wrap: wrap; }
+  .order-row .meta { color: var(--muted); }
   .order-actions button { margin-left: 8px; }
-  .editing-banner { background: var(--amber); color: var(--ink); padding: 8px 12px; border-radius: 5px; font-size: 13px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .editing-banner { background: #FFF4E2; border: 1px solid #F0D9A8; color: #8A6416; padding: 10px 14px; border-radius: var(--radius-md); font-size: 13px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
-  .modal-box { width: 85%; max-width: 520px; min-height: 55vh; background: var(--paper); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 32px; text-align: center; }
-  .modal-box h2 { font-size: 22px; margin: 0; }
-  .modal-box p { color: var(--steel); font-size: 14px; margin: 0; }
-  .modal-ok { background: var(--amber); color: var(--ink); border: none; border-radius: 6px; padding: 14px 40px; font-size: 16px; cursor: pointer; }
+  .stat-pill { display: inline-flex; align-items: center; gap: 6px; background: var(--green-bg); color: var(--green); font-weight: 700; font-size: 12.5px; padding: 6px 12px; border-radius: 20px; }
+  .stat-pill.warn { background: var(--rust-bg); color: var(--rust); }
 
-  .monitor { background: var(--ink); min-height: 100vh; color: var(--paper); }
-  .monitor .wrap { max-width: 1100px; }
-  .mon-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-  .mon-head h1 { color: var(--paper); margin: 0; }
-  .pill { background: #26241F; border: 1px solid #3A3833; color: var(--amber); padding: 4px 12px; border-radius: 20px; font-size: 13px; }
-  .tickets { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 12px; }
-  .ticket { background: #26241F; border: 1px solid #3A3833; border-left: 4px solid var(--steel); border-radius: 5px; padding: 14px; }
-  .ticket.warn { border-left-color: var(--amber); }
-  .ticket.late { border-left-color: var(--rust); }
-  .ticket.wartend { opacity: 0.6; }
-  .t-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-  .t-num { font-size: 24px; }
-  .t-time { font-size: 12px; color: var(--steel); }
-  .ticket.warn .t-time { color: var(--amber); }
-  .ticket.late .t-time { color: var(--rust); }
-  .t-items { list-style: none; margin: 0 0 10px; padding: 0; }
-  .t-items li { font-size: 14px; margin-bottom: 3px; }
-  .t-items b { color: var(--amber); margin-right: 6px; }
-  .ready-btn { width: 100%; background: transparent; border: 1px solid var(--amber); color: var(--amber); border-radius: 4px; padding: 9px; font-size: 13px; cursor: pointer; margin-top: 4px; }
-  .ready-btn.sage { border-color: var(--sage); color: var(--sage); }
-  .empty { text-align: center; color: var(--steel); padding: 60px 20px; }
-  .ausgabe-badge { display: inline-block; background: var(--amber); color: var(--ink); font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 12px; margin-left: 6px; }
-  .ausgabe-wait { display: inline-block; background: #3A3833; color: var(--steel); font-size: 11px; padding: 2px 9px; border-radius: 12px; margin-left: 6px; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(10,12,18,0.6); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+  .modal-box { width: 85%; max-width: 520px; min-height: 55vh; background: #fff; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 32px; text-align: center; }
+  .modal-box h2 { font-size: 21px; }
+  .modal-box p { color: var(--muted); font-size: 14px; margin: 0; line-height: 1.5; }
+  .modal-ok { background: var(--navy); color: #fff; border: none; border-radius: 12px; padding: 14px 40px; font-size: 16px; font-weight: 600; cursor: pointer; }
 
-  .ausgabe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 16px; }
-  .ausgabe-row { display: flex; align-items: center; justify-content: space-between; background: #26241F; border: 1px solid #3A3833; border-radius: 6px; padding: 16px 18px; }
-  .ausgabe-num { font-size: 30px; color: var(--amber); min-width: 50px; }
-  .ausgabe-info { text-align: right; }
-  .ausgabe-nr { font-size: 26px; }
-  .status-tag { display: inline-block; font-size: 12px; padding: 3px 10px; border-radius: 12px; margin-top: 4px; }
-  .status-wartend { background: #3A3833; color: var(--steel); }
-  .status-inBearbeitung { background: #4A3416; color: var(--amber); }
-  .status-fertig { background: #1E3A22; color: var(--sage); }
+  /* ---- Monitore (dunkel, LED-Stil) ---- */
+  .monitor { background: var(--led); min-height: 100vh; color: #EDEEF2; }
+  .monitor .wrap { max-width: 1200px; }
+  .mon-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .mon-head h1 { color: #fff; font-size: 20px; }
+  .mon-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .hotkey-btn { background: #26282F; border: 1px solid #3A3D46; color: #C9CCD4; border-radius: 10px; padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .hotkey-btn.aktiv-warnung { background: var(--rust-bg); color: var(--rust); border-color: var(--rust); }
+
+  .led-box { background: #1D1F26; border: 1px solid #2E313B; border-radius: 10px; padding: 4px 12px; display: inline-flex; align-items: baseline; gap: 4px; font-family: 'Poppins', sans-serif; font-weight: 700; }
+  .led-amber { color: var(--led-amber); }
+  .led-green { color: var(--led-green); }
+  .led-grey { color: var(--led-grey); }
+  .led-rust { color: var(--rust); }
+
+  /* Ausgaben-Kacheln (Küche) */
+  .ausgaben-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  @media (max-width: 760px) { .ausgaben-grid { grid-template-columns: 1fr; } }
+  .ausgabe-tile { background: #1D1F26; border: 1px solid #2E313B; border-radius: 16px; padding: 18px; min-height: 220px; display: flex; flex-direction: column; gap: 10px; position: relative; }
+  .ausgabe-tile.belegt { border-color: var(--led-amber); }
+  .ausgabe-tile.frei { opacity: 0.6; align-items: center; justify-content: center; text-align: center; }
+  .ausgabe-tile.geschlossen { opacity: 0.35; align-items: center; justify-content: center; text-align: center; }
+  .ausgabe-tile-head { display: flex; justify-content: space-between; align-items: center; }
+  .ausgabe-tile-nr { font-size: 15px; color: #9CA0AC; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .ausgabe-toggle { background: #2E313B; border: none; color: #C9CCD4; border-radius: 8px; padding: 5px 10px; font-size: 11px; cursor: pointer; font-weight: 600; }
+  .ausgabe-toggle.on { background: var(--green); color: #fff; }
+  .ausgabe-tile-num { font-size: 34px; color: #fff; font-weight: 700; font-family: 'Poppins', sans-serif; }
+  .ausgabe-tile-time { font-size: 13px; color: var(--led-grey); }
+  .ausgabe-tile-time.warn { color: var(--led-amber); }
+  .ausgabe-tile-time.late { color: var(--rust); }
+  .t-items { list-style: none; margin: 0; padding: 0; flex: 1; }
+  .t-items li { font-size: 15px; margin-bottom: 4px; }
+  .t-items b { color: var(--led-amber); margin-right: 6px; }
+  .t-hinweis { color: var(--rust); font-size: 13px; font-weight: 600; margin: 4px 0 0; }
+  .ready-btn { width: 100%; background: transparent; border: 1px solid var(--led-amber); color: var(--led-amber); border-radius: 9px; padding: 10px; font-size: 13px; cursor: pointer; font-weight: 600; }
+  .ready-btn.sage { border-color: var(--led-green); color: var(--led-green); }
+
+  .queue-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
+  .queue-tile { flex: 0 0 180px; background: #1D1F26; border: 1px solid #2E313B; border-radius: 12px; padding: 12px; }
+  .queue-tile .q-nr { font-size: 18px; font-weight: 700; color: #fff; }
+  .queue-tile .q-time { font-size: 11px; color: var(--led-grey); }
+  .queue-tile ul { list-style: none; margin: 6px 0 0; padding: 0; font-size: 12px; color: #C9CCD4; }
+
+  .empty { text-align: center; color: var(--led-grey); padding: 60px 20px; }
+  .ausgabe-badge { display: inline-block; background: var(--led-amber); color: var(--led); font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 12px; margin-left: 6px; }
+  .ausgabe-wait { display: inline-block; background: #2E313B; color: var(--led-grey); font-size: 11px; padding: 2px 9px; border-radius: 12px; margin-left: 6px; }
+
+  /* Ausgabemonitor: volle Breite, automatisch skalierend */
+  .ausgabe-fullscreen { display: flex; flex-direction: column; gap: 0.7vh; padding: 0 1.2vw 1.2vh; }
+  .ausgabe-tile-full {
+    background: #1D1F26; border: 1px solid #2E313B; border-radius: 16px;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 3vw;
+    transition: background 0.3s ease;
+  }
+  .ausgabe-tile-full.gross { border-color: var(--led-amber); background: #24211A; }
+  .ausgabe-tile-full .links { display: flex; align-items: baseline; gap: 1.2vw; }
+  .status-tag { display: inline-block; font-weight: 700; padding: 0.3em 0.9em; border-radius: 999px; }
+  .status-wartend { background: #2E313B; color: var(--led-grey); }
+  .status-inBearbeitung { background: #4A3416; color: var(--led-amber); }
+  .status-fertig { background: #16341F; color: var(--led-green); }
 </style>
 </head>
 <body>
@@ -124,36 +177,36 @@
   // Firebase-Konfiguration: eigene Projektdaten aus der Firebase-Konsole eintragen
   // (Project Settings -> General -> "Your apps" -> SDK setup and configuration)
   window.firebaseConfig = {
-    apiKey: "AIzaSyA6gB4xskgydH3v6TtmvKpNgjlaSio_8IM",
-  authDomain: "verpflegungsstand.firebaseapp.com",
-  projectId: "verpflegungsstand",
-  storageBucket: "verpflegungsstand.firebasestorage.app",
-  messagingSenderId: "808275832434",
-  appId: "1:808275832434:web:5f476127a341aa4dfd5ceb"
+    apiKey: "DEIN_API_KEY",
+    authDomain: "DEIN_PROJEKT.firebaseapp.com",
+    projectId: "DEIN_PROJEKT",
+    storageBucket: "DEIN_PROJEKT.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
   };
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
+    getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc,
     onSnapshot, query, orderBy, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const app = initializeApp(window.firebaseConfig);
   const db = getFirestore(app);
   window.__db = db;
-  window.__fs = { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp };
+  window.__fs = { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot, query, orderBy, serverTimestamp };
 
   window.dispatchEvent(new Event("firebase-ready"));
 </script>
 
 <script type="text/babel" data-type="module">
-const { useState, useEffect, useMemo, useCallback } = React;
+const { useState, useEffect, useMemo, useRef } = React;
 
 // Festes Admin-Passwort für die Artikelverwaltung. Vor dem Veröffentlichen
 // anpassen — wer die index.html einsehen kann, sieht auch dieses Passwort,
 // es schützt also nur vor versehentlichem Ändern durch Kassenpersonal,
 // nicht vor absichtlichem Zugriff.
-const ADMIN_PASSWORT = "Kuckucksbaehnel2026";
+const ADMIN_PASSWORT = "aenderMich123";
 
 const KATEGORIEN = [
   { id: "essen", label: "Essen" },
@@ -163,6 +216,7 @@ const KATEGORIEN = [
 const katLabel = (id) => (KATEGORIEN.find((k) => k.id === id) || {}).label || id;
 
 const ANZAHL_AUSGABEN = 3;
+const EINSTELLUNGEN_STANDARD = { ausgabe1: true, ausgabe2: true, ausgabe3: true, essenBesetzt: true, getraenkeBesetzt: true };
 
 function zeitKlasse(elapsedMs) {
   const mins = elapsedMs / 60000;
@@ -236,18 +290,38 @@ function useBestellungen() {
   return { bestellungen, ready };
 }
 
-// Weist wartenden Essens-Bestellungen automatisch eine freie Ausgabe (1-3) zu,
-// sobald eine frei wird. Läuft in jeder Ansicht, die eingebunden ist
-// (Essen-Monitor, Ausgabemonitor) und reagiert auf Änderungen live.
-function useAusgabenZuweisung(bestellungen, ready) {
+function useEinstellungen() {
+  const ready = useFirebaseReady();
+  const [ein, setEin] = useState(EINSTELLUNGEN_STANDARD);
   useEffect(() => {
     if (!ready) return;
+    const { doc, onSnapshot } = window.__fs;
+    const ref = doc(window.__db, "einstellungen", "ausgabesystem");
+    const unsub = onSnapshot(ref, (snap) => {
+      if (snap.exists()) setEin({ ...EINSTELLUNGEN_STANDARD, ...snap.data() });
+    });
+    return unsub;
+  }, [ready]);
+  return ein;
+}
+
+async function setEinstellung(patch) {
+  const { doc, setDoc } = window.__fs;
+  await setDoc(doc(window.__db, "einstellungen", "ausgabesystem"), patch, { merge: true });
+}
+
+// Weist wartenden Essens-Bestellungen automatisch eine freie, geöffnete Ausgabe
+// (1-3) zu, sobald eine frei wird. Läuft im Essen-Monitor und Ausgabemonitor.
+function useAusgabenZuweisung(bestellungen, ready, einstellungen) {
+  useEffect(() => {
+    if (!ready || !einstellungen.essenBesetzt) return;
+    const offeneNummern = [1, 2, 3].filter((n) => einstellungen["ausgabe" + n]);
+    if (offeneNummern.length === 0) return;
     const aktiv = bestellungen.filter(istAktiv);
     const belegt = new Set(
       aktiv.filter((b) => b.essenStatus === "inBearbeitung" || b.essenStatus === "fertig").map((b) => b.ausgabeNummer)
     );
-    const frei = [];
-    for (let n = 1; n <= ANZAHL_AUSGABEN; n++) if (!belegt.has(n)) frei.push(n);
+    const frei = offeneNummern.filter((n) => !belegt.has(n));
     if (frei.length === 0) return;
     const wartend = aktiv
       .filter((b) => b.essenStatus === "wartend")
@@ -261,22 +335,37 @@ function useAusgabenZuweisung(bestellungen, ready) {
         ausgabeNummer: frei[idx],
       }).catch(() => {});
     });
-  }, [bestellungen, ready]);
+  }, [bestellungen, ready, einstellungen]);
 }
 
 function Nav({ current }) {
   const links = [
     ["kasse", "Kasse"],
-    ["artikel", "Artikelverwaltung"],
-    ["monitor-getraenke", "Monitor Getränke"],
-    ["monitor-essen", "Monitor Essen"],
-    ["ausgabemonitor", "Ausgabemonitor"],
+    ["artikel", "Artikel"],
+    ["monitor-getraenke", "Getränke"],
+    ["monitor-essen", "Essen"],
+    ["ausgabemonitor", "Ausgabe"],
   ];
   return (
-    <div className="nav">
-      {links.map(([key, label]) => (
-        <a key={key} href={"#" + key} className={current === key ? "active" : ""}>{label}</a>
-      ))}
+    <div className="nav-wrap">
+      <div className="nav">
+        {links.map(([key, label]) => (
+          <a key={key} href={"#" + key} className={current === key ? "active" : ""}>{label}</a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function InfoModal({ title, message, onClose }) {
+  if (!title) return null;
+  return (
+    <div className="modal-overlay">
+      <div className="modal-box">
+        <h2>{title}</h2>
+        {message && <p>{message}</p>}
+        <button className="modal-ok" onClick={onClose}>OK</button>
+      </div>
     </div>
   );
 }
@@ -297,13 +386,8 @@ function Artikelverwaltung() {
   const [editKategorie, setEditKategorie] = useState("essen");
 
   const unlock = () => {
-    if (pwInput === ADMIN_PASSWORT) {
-      setAdmin(true);
-      setPwError("");
-      setPwInput("");
-    } else {
-      setPwError("Falsches Passwort.");
-    }
+    if (pwInput === ADMIN_PASSWORT) { setAdmin(true); setPwError(""); setPwInput(""); }
+    else setPwError("Falsches Passwort.");
   };
 
   const add = async () => {
@@ -311,9 +395,7 @@ function Artikelverwaltung() {
     setError("");
     const { collection, addDoc } = window.__fs;
     await addDoc(collection(window.__db, "artikel"), {
-      name: name.trim(),
-      preis: parseFloat(preis.replace(",", ".")),
-      kategorie,
+      name: name.trim(), preis: parseFloat(preis.replace(",", ".")), kategorie, ausverkauft: false,
     });
     setName(""); setPreis("");
   };
@@ -323,41 +405,33 @@ function Artikelverwaltung() {
     await deleteDoc(doc(window.__db, "artikel", id));
   };
 
-  const startEdit = (a) => {
-    setEditId(a.id);
-    setEditName(a.name);
-    setEditPreis(String(a.preis).replace(".", ","));
-    setEditKategorie(a.kategorie);
+  const toggleAusverkauft = async (a) => {
+    const { doc, updateDoc } = window.__fs;
+    await updateDoc(doc(window.__db, "artikel", a.id), { ausverkauft: !a.ausverkauft });
   };
 
+  const startEdit = (a) => {
+    setEditId(a.id); setEditName(a.name); setEditPreis(String(a.preis).replace(".", ",")); setEditKategorie(a.kategorie);
+  };
   const cancelEdit = () => setEditId(null);
-
   const saveEdit = async (id) => {
     if (!editName.trim() || !editPreis) { setError("Name und Preis eintragen."); return; }
     setError("");
     const { doc, updateDoc } = window.__fs;
     await updateDoc(doc(window.__db, "artikel", id), {
-      name: editName.trim(),
-      preis: parseFloat(editPreis.replace(",", ".")),
-      kategorie: editKategorie,
+      name: editName.trim(), preis: parseFloat(editPreis.replace(",", ".")), kategorie: editKategorie,
     });
     setEditId(null);
   };
 
   return (
     <div className="wrap">
-      <h1>Artikelverwaltung</h1>
+      <h1 className="page-title">Artikelverwaltung</h1>
 
       {!admin && (
         <div className="row-form">
-          <input
-            type="password"
-            placeholder="Admin-Passwort"
-            value={pwInput}
-            onChange={(e) => setPwInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && unlock()}
-            style={{ width: 180 }}
-          />
+          <input type="password" placeholder="Admin-Passwort" value={pwInput}
+            onChange={(e) => setPwInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && unlock()} style={{ width: 180 }} />
           <button className="btn" onClick={unlock}>Entsperren</button>
           {pwError && <span style={{ color: "var(--rust)", fontSize: 13 }}>{pwError}</span>}
         </div>
@@ -378,7 +452,7 @@ function Artikelverwaltung() {
       {error && <p style={{ color: "var(--rust)", fontSize: 13 }}>{error}</p>}
       {!ready && <p>Verbinde mit Firebase…</p>}
       <table>
-        <thead><tr><th>Name</th><th>Kategorie</th><th>Preis</th>{admin && <th></th>}</tr></thead>
+        <thead><tr><th>Name</th><th>Kategorie</th><th>Preis</th><th>Verfügbar</th>{admin && <th></th>}</tr></thead>
         <tbody>
           {artikel.map((a) => (
             editId === a.id ? (
@@ -390,6 +464,7 @@ function Artikelverwaltung() {
                   </select>
                 </td>
                 <td><input value={editPreis} onChange={(e) => setEditPreis(e.target.value)} style={{ width: 80 }} /></td>
+                <td></td>
                 <td>
                   <button className="edit-link" onClick={() => saveEdit(a.id)}>Speichern</button>
                   <button className="del" onClick={cancelEdit}>Abbrechen</button>
@@ -400,6 +475,13 @@ function Artikelverwaltung() {
                 <td>{a.name}</td>
                 <td>{katLabel(a.kategorie)}</td>
                 <td>{a.preis.toFixed(2)} €</td>
+                <td>
+                  {admin ? (
+                    <button className="btn small" style={a.ausverkauft ? { background: "var(--rust)" } : { background: "var(--green)" }} onClick={() => toggleAusverkauft(a)}>
+                      {a.ausverkauft ? "Ausverkauft" : "Verfügbar"}
+                    </button>
+                  ) : (a.ausverkauft ? <span className="ausverkauft-tag">Ausverkauft</span> : "Verfügbar")}
+                </td>
                 {admin && (
                   <td>
                     <button className="edit-link" onClick={() => startEdit(a)}>Bearbeiten</button>
@@ -410,23 +492,10 @@ function Artikelverwaltung() {
             )
           ))}
           {artikel.length === 0 && ready && (
-            <tr><td colSpan={admin ? 4 : 3} style={{ color: "var(--steel)" }}>Noch keine Artikel angelegt.</td></tr>
+            <tr><td colSpan={admin ? 5 : 4} style={{ color: "var(--muted)" }}>Noch keine Artikel angelegt.</td></tr>
           )}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-function StornoModal({ nummer, onClose }) {
-  if (nummer == null) return null;
-  return (
-    <div className="modal-overlay">
-      <div className="modal-box">
-        <h2>Bestellung Nr. {nummer} storniert</h2>
-        <p>Die Bestellung wurde storniert und erscheint nicht mehr auf den Monitoren.</p>
-        <button className="modal-ok" onClick={onClose}>OK</button>
-      </div>
     </div>
   );
 }
@@ -435,15 +504,28 @@ function Kasse() {
   const ready = useFirebaseReady();
   const artikel = useArtikel();
   const { bestellungen } = useBestellungen();
+  const einstellungen = useEinstellungen();
   const [cart, setCart] = useState({});
   const [gegeben, setGegeben] = useState("");
+  const [hinweis, setHinweis] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [lastNummer, setLastNummer] = useState(null);
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [stornoNummer, setStornoNummer] = useState(null);
   const [suchNummer, setSuchNummer] = useState("");
-  const [suchTreffer, setSuchTreffer] = useState(undefined); // undefined = noch nicht gesucht, null = nichts gefunden
+  const [suchTreffer, setSuchTreffer] = useState(undefined);
+  const [geschlossenPopup, setGeschlossenPopup] = useState(false);
+
+  const essenOffenCount = [1, 2, 3].filter((n) => einstellungen["ausgabe" + n]).length;
+  const essenVerfuegbar = einstellungen.essenBesetzt && essenOffenCount > 0;
+  const getraenkeVerfuegbar = einstellungen.getraenkeBesetzt;
+
+  const vorherEssenVerfuegbar = useRef(essenVerfuegbar);
+  useEffect(() => {
+    if (vorherEssenVerfuegbar.current && !essenVerfuegbar) setGeschlossenPopup(true);
+    vorherEssenVerfuegbar.current = essenVerfuegbar;
+  }, [essenVerfuegbar]);
 
   useEffect(() => {
     if (lastNummer === null) return;
@@ -451,11 +533,12 @@ function Kasse() {
     return () => clearTimeout(t);
   }, [lastNummer]);
 
-  const changeQty = (id, delta) => {
+  const changeQty = (a, delta) => {
+    if (a.ausverkauft) return;
     setCart((prev) => {
       const next = { ...prev };
-      const val = (next[id] || 0) + delta;
-      if (val <= 0) delete next[id]; else next[id] = val;
+      const val = (next[a.id] || 0) + delta;
+      if (val <= 0) delete next[a.id]; else next[a.id] = val;
       return next;
     });
   };
@@ -468,7 +551,7 @@ function Kasse() {
   const gegebenZahl = gegeben ? parseFloat(gegeben.replace(",", ".")) : null;
   const rueckgeld = gegebenZahl !== null && !isNaN(gegebenZahl) ? gegebenZahl - totalCost : null;
 
-  const resetForm = () => { setCart({}); setGegeben(""); setEditingId(null); };
+  const resetForm = () => { setCart({}); setGegeben(""); setHinweis(""); setEditingId(null); };
 
   const submit = async () => {
     if (totalItems === 0 || submitting) return;
@@ -491,32 +574,20 @@ function Kasse() {
         else if (essenStatus === "kein") { essenStatus = "wartend"; ausgabeNummer = null; }
         else if (essenStatus === "fertig") { essenStatus = ausgabeNummer ? "inBearbeitung" : "wartend"; }
         await updateDoc(doc(window.__db, "bestellungen", editingId), {
-          items,
-          gesamtpreis: totalCost,
-          hatEssen,
-          hatGetraenke,
+          items, gesamtpreis: totalCost, hatEssen, hatGetraenke,
           getraenkeFertig: hatGetraenke ? false : true,
-          essenStatus,
-          ausgabeNummer,
+          essenStatus, ausgabeNummer, hinweis: hinweis.trim(),
         });
         setLastNummer(bestehend.nummer);
       } else {
         const nummer = Math.floor(Date.now() / 1000) % 1000;
         await addDoc(collection(window.__db, "bestellungen"), {
-          nummer,
-          items,
-          gesamtpreis: totalCost,
-          gegeben: gegebenZahl,
-          rueckgeld: rueckgeld,
-          hatEssen,
-          hatGetraenke,
+          nummer, items, gesamtpreis: totalCost, gegeben: gegebenZahl, rueckgeld: rueckgeld,
+          hinweis: hinweis.trim(), hatEssen, hatGetraenke,
           getraenkeFertig: !hatGetraenke,
           essenStatus: hatEssen ? "wartend" : "kein",
-          ausgabeNummer: null,
-          storniert: false,
-          archiviert: false,
-          erstelltAm: serverTimestamp(),
-          erstelltAmMs: Date.now(),
+          ausgabeNummer: null, storniert: false, archiviert: false,
+          erstelltAm: serverTimestamp(), erstelltAmMs: Date.now(),
         });
         setLastNummer(nummer);
       }
@@ -534,6 +605,7 @@ function Kasse() {
     setCart(neuerCart);
     setEditingId(b.id);
     setGegeben("");
+    setHinweis(b.hinweis || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -553,49 +625,70 @@ function Kasse() {
     setSuchTreffer(treffer || null);
   };
 
+  const renderKategorieBlock = (kat) => {
+    const items = artikel.filter((a) => a.kategorie === kat.id);
+    if (items.length === 0) return null;
+    const istGetraenkeKat = kat.id === "alkoholfrei" || kat.id === "alkoholisch";
+    const verfuegbar = kat.id === "essen" ? essenVerfuegbar : (istGetraenkeKat ? getraenkeVerfuegbar : true);
+    return (
+      <div key={kat.id} style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <h2 style={{ fontSize: 15 }}>{kat.label}</h2>
+          {kat.id === "essen" && (
+            <span className={"stat-pill" + (essenOffenCount === 0 ? " warn" : "")}>{essenOffenCount} von 3 Ausgaben geöffnet</span>
+          )}
+        </div>
+        {!verfuegbar ? (
+          <div className="gesperrt-block">
+            {kat.id === "essen" ? "Essensausgabe aktuell nicht besetzt" : "Getränkeausgabe aktuell nicht besetzt"}
+          </div>
+        ) : (
+          <div className="grid">
+            {items.map((a) => (
+              <div className={"card" + (a.ausverkauft ? " ausverkauft" : "")} key={a.id}>
+                <div>{a.name}</div>
+                {a.ausverkauft ? <div className="ausverkauft-tag">Ausverkauft</div> : <div className="price">{a.preis.toFixed(2)} €</div>}
+                <div className="stepper">
+                  <button onClick={() => changeQty(a, -1)} disabled={!cart[a.id] || a.ausverkauft}>-</button>
+                  <span className="qty">{cart[a.id] || 0}</span>
+                  <button onClick={() => changeQty(a, 1)} disabled={a.ausverkauft}>+</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="wrap">
-      <StornoModal nummer={stornoNummer} onClose={() => setStornoNummer(null)} />
-      <h1>Kasse</h1>
+      <InfoModal title={stornoNummer != null ? "Bestellung Nr. " + stornoNummer + " storniert" : null}
+        message="Die Bestellung wurde storniert und erscheint nicht mehr auf den Monitoren."
+        onClose={() => setStornoNummer(null)} />
+      <InfoModal title={geschlossenPopup ? "Essensausgabe aktuell nicht verfügbar" : null}
+        message="Es ist aktuell keine Ausgabe für Essen geöffnet bzw. besetzt. Essensbestellungen können momentan nicht aufgenommen werden."
+        onClose={() => setGeschlossenPopup(false)} />
+
+      <h1 className="page-title">Kasse</h1>
 
       {editingId && (
         <div className="editing-banner">
           <span>Bestellung wird bearbeitet — Änderungen speichern oder abbrechen.</span>
-          <button className="del" onClick={resetForm} style={{ color: "var(--ink)" }}>Abbrechen</button>
+          <button className="del" onClick={resetForm} style={{ color: "#8A6416" }}>Abbrechen</button>
         </div>
       )}
 
       {lastNummer !== null && (
-        <p style={{ background: "var(--sage)", color: "#fff", padding: "8px 12px", borderRadius: 5, display: "inline-block" }}>
+        <p style={{ background: "var(--green)", color: "#fff", padding: "8px 12px", borderRadius: 9, display: "inline-block" }}>
           Bestellung Nr. {lastNummer} {editingId ? "aktualisiert" : "gesendet"}
         </p>
       )}
       {error && <p style={{ color: "var(--rust)" }}>{error}</p>}
       {!ready && <p>Verbinde mit Firebase…</p>}
-      {ready && artikel.length === 0 && <p style={{ color: "var(--steel)" }}>Noch keine Artikel angelegt — zuerst in der Artikelverwaltung eintragen.</p>}
+      {ready && artikel.length === 0 && <p style={{ color: "var(--muted)" }}>Noch keine Artikel angelegt — zuerst in der Artikelverwaltung eintragen.</p>}
 
-      {KATEGORIEN.map((kat) => {
-        const items = artikel.filter((a) => a.kategorie === kat.id);
-        if (items.length === 0) return null;
-        return (
-          <div key={kat.id} style={{ marginBottom: 20 }}>
-            <h2 style={{ fontSize: 15, margin: "0 0 8px" }}>{kat.label}</h2>
-            <div className="grid">
-              {items.map((a) => (
-                <div className="card" key={a.id}>
-                  <div>{a.name}</div>
-                  <div className="price">{a.preis.toFixed(2)} €</div>
-                  <div className="stepper">
-                    <button onClick={() => changeQty(a.id, -1)} disabled={!cart[a.id]}>-</button>
-                    <span className="qty">{cart[a.id] || 0}</span>
-                    <button onClick={() => changeQty(a.id, 1)}>+</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
+      {KATEGORIEN.map(renderKategorieBlock)}
 
       <div className="bar">
         <span><b>{totalItems}</b> Artikel — <b>{totalCost.toFixed(2)} €</b></span>
@@ -604,17 +697,20 @@ function Kasse() {
             <label htmlFor="gegeben">Gegeben:</label>
             <input id="gegeben" value={gegeben} onChange={(e) => setGegeben(e.target.value)} placeholder="0,00" />
             {rueckgeld !== null && !isNaN(rueckgeld) && (
-              <span>Rückgeld: <b style={{ color: rueckgeld < 0 ? "var(--rust)" : "var(--amber)" }}>{rueckgeld.toFixed(2)} €</b></span>
+              <span>Rückgeld: <b>{rueckgeld.toFixed(2)} €</b></span>
             )}
           </div>
         )}
         <button className="btn" onClick={submit} disabled={totalItems === 0 || submitting}>
           {submitting ? "Sende…" : editingId ? "Änderungen speichern" : "Bestellung senden"}
         </button>
+        <div className="hinweis-row">
+          <input placeholder="Hinweis für die Küche (z.B. ohne Zwiebeln)" value={hinweis} onChange={(e) => setHinweis(e.target.value)} />
+        </div>
       </div>
 
       <h2 className="section-title">Aktuelle Bestellungen</h2>
-      {aktive.length === 0 && <p style={{ color: "var(--steel)", fontSize: 13 }}>Keine offenen Bestellungen.</p>}
+      {aktive.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>Keine offenen Bestellungen.</p>}
       {aktive.map((b) => (
         <div className="order-row" key={b.id}>
           <span><b>Nr. {b.nummer}</b> — {b.gesamtpreis.toFixed(2)} € <span className="meta">· {orderStatusText(b)}</span></span>
@@ -651,6 +747,7 @@ function Kasse() {
 
 function MonitorGetraenke() {
   const { bestellungen } = useBestellungen();
+  const einstellungen = useEinstellungen();
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -671,8 +768,7 @@ function MonitorGetraenke() {
   const markFertig = async (b) => {
     const { doc, updateDoc } = window.__fs;
     await updateDoc(doc(window.__db, "bestellungen", b.id), {
-      getraenkeFertig: true,
-      ...(!b.hatEssen ? { archiviert: true } : {}),
+      getraenkeFertig: true, ...(!b.hatEssen ? { archiviert: true } : {}),
     });
   };
 
@@ -682,29 +778,34 @@ function MonitorGetraenke() {
       <div className="wrap">
         <div className="mon-head">
           <h1>Getränke</h1>
-          <span className="pill">{offen.length} offen</span>
+          <div className="mon-controls">
+            <span className="led-box led-amber">{offen.length} offen</span>
+            <button className={"hotkey-btn" + (!einstellungen.getraenkeBesetzt ? " aktiv-warnung" : "")}
+              onClick={() => setEinstellung({ getraenkeBesetzt: !einstellungen.getraenkeBesetzt })}>
+              {einstellungen.getraenkeBesetzt ? "Ausgabe nicht besetzt melden" : "Ausgabe wieder besetzt melden"}
+            </button>
+          </div>
         </div>
         {offen.length === 0 && <div className="empty">Keine offenen Bestellungen</div>}
-        <div className="tickets">
+        <div className="ausgaben-grid">
           {offen.map((b) => {
             const elapsed = now - (b.erstelltAmMs || Date.now());
             const cls = zeitKlasse(elapsed);
             return (
-              <div className={"ticket " + cls} key={b.id}>
-                <div className="t-top">
-                  <span className="t-num">
-                    Nr. {b.nummer}
-                    {b.hatEssen && (b.ausgabeNummer
-                      ? <span className="ausgabe-badge">Ausgabe {b.ausgabeNummer}</span>
-                      : <span className="ausgabe-wait">wartet auf Ausgabe</span>)}
-                  </span>
-                  <span className="t-time">{formatElapsed(elapsed)}</span>
+              <div className="ausgabe-tile belegt" key={b.id}>
+                <div className="ausgabe-tile-head">
+                  <span className="ausgabe-tile-num">Nr. {b.nummer}</span>
+                  <span className={"ausgabe-tile-time " + cls}>{formatElapsed(elapsed)}</span>
                 </div>
+                {b.hatEssen && (b.ausgabeNummer
+                  ? <span className="ausgabe-badge">Ausgabe {b.ausgabeNummer}</span>
+                  : <span className="ausgabe-wait">wartet auf Ausgabe</span>)}
                 <ul className="t-items">
                   {b.items.filter((i) => i.kategorie === "alkoholfrei" || i.kategorie === "alkoholisch").map((i, idx) => (
                     <li key={idx}><b>{i.menge}×</b>{i.name}</li>
                   ))}
                 </ul>
+                {b.hinweis && <p className="t-hinweis">{b.hinweis}</p>}
                 <button className="ready-btn" onClick={() => markFertig(b)}>Als fertig markieren</button>
               </div>
             );
@@ -717,23 +818,21 @@ function MonitorGetraenke() {
 
 function MonitorEssen() {
   const { bestellungen, ready } = useBestellungen();
-  useAusgabenZuweisung(bestellungen, ready);
+  const einstellungen = useEinstellungen();
+  useAusgabenZuweisung(bestellungen, ready, einstellungen);
   const [now, setNow] = useState(Date.now());
+  const [warnung, setWarnung] = useState(null);
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  const liste = useMemo(() => {
-    return bestellungen
-      .filter((b) => istAktiv(b) && b.hatEssen && b.essenStatus !== "kein")
-      .sort((a, b) => {
-        const wA = a.essenStatus === "wartend" ? 1 : 0;
-        const wB = b.essenStatus === "wartend" ? 1 : 0;
-        if (wA !== wB) return wA - wB;
-        return (a.erstelltAmMs || 0) - (b.erstelltAmMs || 0);
-      });
-  }, [bestellungen]);
+  const aktiv = useMemo(() => bestellungen.filter((b) => istAktiv(b) && b.hatEssen && b.essenStatus !== "kein"), [bestellungen]);
+
+  const wartendeListe = useMemo(() =>
+    aktiv.filter((b) => b.essenStatus === "wartend").sort((a, b) => (a.erstelltAmMs || 0) - (b.erstelltAmMs || 0)),
+    [aktiv]
+  );
 
   const markFertig = async (b) => {
     const { doc, updateDoc } = window.__fs;
@@ -744,44 +843,105 @@ function MonitorEssen() {
     await updateDoc(doc(window.__db, "bestellungen", b.id), { archiviert: true });
   };
 
+  const toggleAusgabe = async (n) => {
+    const key = "ausgabe" + n;
+    const wirdAusgeschaltet = einstellungen[key];
+    if (wirdAusgeschaltet) {
+      const hatAktive = aktiv.some((b) => b.ausgabeNummer === n && (b.essenStatus === "inBearbeitung" || b.essenStatus === "fertig"));
+      if (hatAktive) {
+        setWarnung("Es befindet sich noch eine aktive Bestellung am zu schließenden Ausgabebereich. Nach Fertigstellung und Abholung der Bestellung, werden keine weiteren Bestellungen auf die ausgewählte Ausgabe gebucht.");
+      }
+    }
+    await setEinstellung({ [key]: !wirdAusgeschaltet });
+  };
+
   return (
     <div className="monitor">
       <Nav current="monitor-essen" />
+      <InfoModal title={warnung ? "Ausgabe wird geschlossen" : null} message={warnung} onClose={() => setWarnung(null)} />
       <div className="wrap">
         <div className="mon-head">
           <h1>Essen / Grill</h1>
-          <span className="pill">{liste.length} offen</span>
+          <div className="mon-controls">
+            <span className="led-box led-amber">{aktiv.length} offen</span>
+            <button className={"hotkey-btn" + (!einstellungen.essenBesetzt ? " aktiv-warnung" : "")}
+              onClick={() => setEinstellung({ essenBesetzt: !einstellungen.essenBesetzt })}>
+              {einstellungen.essenBesetzt ? "Ausgabe nicht besetzt melden" : "Ausgabe wieder besetzt melden"}
+            </button>
+          </div>
         </div>
-        {liste.length === 0 && <div className="empty">Keine offenen Bestellungen</div>}
-        <div className="tickets">
-          {liste.map((b) => {
-            const elapsed = now - (b.erstelltAmMs || Date.now());
-            const cls = b.essenStatus === "wartend" ? "wartend" : zeitKlasse(elapsed);
+
+        <div className="ausgaben-grid">
+          {[1, 2, 3].map((n) => {
+            const offen = einstellungen["ausgabe" + n];
+            const order = aktiv.find((b) => b.ausgabeNummer === n && (b.essenStatus === "inBearbeitung" || b.essenStatus === "fertig"));
+            if (!offen) {
+              return (
+                <div className="ausgabe-tile geschlossen" key={n}>
+                  <span className="ausgabe-tile-nr">Ausgabe {n} — geschlossen</span>
+                  <button className="ausgabe-toggle" onClick={() => toggleAusgabe(n)}>Öffnen</button>
+                </div>
+              );
+            }
+            if (!order) {
+              return (
+                <div className="ausgabe-tile frei" key={n}>
+                  <span className="ausgabe-tile-nr">Ausgabe {n} — frei</span>
+                  <button className="ausgabe-toggle on" onClick={() => toggleAusgabe(n)}>Offen</button>
+                </div>
+              );
+            }
+            const elapsed = now - (order.erstelltAmMs || Date.now());
+            const cls = zeitKlasse(elapsed);
             return (
-              <div className={"ticket " + cls} key={b.id}>
-                <div className="t-top">
-                  <span className="t-num">
-                    Nr. {b.nummer}
-                    {b.ausgabeNummer ? <span className="ausgabe-badge">Ausgabe {b.ausgabeNummer}</span> : <span className="ausgabe-wait">Warteschlange</span>}
-                  </span>
-                  <span className="t-time">{formatElapsed(elapsed)}</span>
+              <div className="ausgabe-tile belegt" key={n}>
+                <div className="ausgabe-tile-head">
+                  <span className="ausgabe-tile-nr">Ausgabe {n}</span>
+                  <button className="ausgabe-toggle on" onClick={() => toggleAusgabe(n)}>Offen</button>
+                </div>
+                <div className="ausgabe-tile-head">
+                  <span className="ausgabe-tile-num">Nr. {order.nummer}</span>
+                  <span className={"ausgabe-tile-time " + cls}>{formatElapsed(elapsed)}</span>
                 </div>
                 <ul className="t-items">
-                  {b.items.filter((i) => i.kategorie === "essen").map((i, idx) => (
+                  {order.items.filter((i) => i.kategorie === "essen").map((i, idx) => (
                     <li key={idx}><b>{i.menge}×</b>{i.name}</li>
                   ))}
                 </ul>
-                {b.essenStatus === "wartend" && <p style={{ fontSize: 12, color: "var(--steel)", margin: "0 0 4px" }}>Wartet auf freie Ausgabe</p>}
-                {b.essenStatus === "inBearbeitung" && (
-                  <button className="ready-btn" onClick={() => markFertig(b)}>Als fertig markieren</button>
+                {order.hinweis && <p className="t-hinweis">{order.hinweis}</p>}
+                {order.essenStatus === "inBearbeitung" && (
+                  <button className="ready-btn" onClick={() => markFertig(order)}>Als fertig markieren</button>
                 )}
-                {b.essenStatus === "fertig" && (
-                  <button className="ready-btn sage" onClick={() => markAbgeholt(b)}>Abgeholt</button>
+                {order.essenStatus === "fertig" && (
+                  <button className="ready-btn sage" onClick={() => markAbgeholt(order)}>Abgeholt</button>
                 )}
               </div>
             );
           })}
         </div>
+
+        {wartendeListe.length > 0 && (
+          <>
+            <h2 style={{ fontSize: 14, color: "#9CA0AC", margin: "4px 0 10px" }}>Warteschlange ({wartendeListe.length})</h2>
+            <div className="queue-row">
+              {wartendeListe.map((b) => {
+                const elapsed = now - (b.erstelltAmMs || Date.now());
+                return (
+                  <div className="queue-tile" key={b.id}>
+                    <div className="q-nr">Nr. {b.nummer}</div>
+                    <div className="q-time">wartet seit {formatElapsed(elapsed)}</div>
+                    <ul>
+                      {b.items.filter((i) => i.kategorie === "essen").map((i, idx) => (
+                        <li key={idx}>{i.menge}× {i.name}</li>
+                      ))}
+                    </ul>
+                    {b.hinweis && <p className="t-hinweis" style={{ fontSize: 11 }}>{b.hinweis}</p>}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -789,7 +949,8 @@ function MonitorEssen() {
 
 function Ausgabemonitor() {
   const { bestellungen, ready } = useBestellungen();
-  useAusgabenZuweisung(bestellungen, ready);
+  const einstellungen = useEinstellungen();
+  useAusgabenZuweisung(bestellungen, ready, einstellungen);
 
   const liste = useMemo(() => {
     return bestellungen
@@ -802,25 +963,48 @@ function Ausgabemonitor() {
       });
   }, [bestellungen]);
 
+  const kacheln = useMemo(() => {
+    const gewicht = (b) => (b.essenStatus === "inBearbeitung" ? 2.2 : 1);
+    const gesamtgewicht = liste.reduce((s, b) => s + gewicht(b), 0) || 1;
+    const verfuegbareHoeheVh = 84;
+    const abstandVh = liste.length > 1 ? (liste.length - 1) * 0.7 : 0;
+    const nutzbareHoeheVh = Math.max(8, verfuegbareHoeheVh - abstandVh);
+    return liste.map((b) => {
+      const hoeheVh = (gewicht(b) / gesamtgewicht) * nutzbareHoeheVh;
+      return { b, hoeheVh, gross: b.essenStatus === "inBearbeitung" };
+    });
+  }, [liste]);
+
   return (
     <div className="monitor">
       <Nav current="ausgabemonitor" />
-      <div className="wrap">
-        <div className="mon-head">
+      <div className="wrap" style={{ maxWidth: "100%", padding: "16px 0" }}>
+        <div className="mon-head" style={{ padding: "0 1.2vw" }}>
           <h1>Ausgabemonitor</h1>
-          <span className="pill">{liste.length} Bestellungen</span>
+          <span className="led-box led-amber">{liste.length} Bestellungen</span>
         </div>
         {liste.length === 0 && <div className="empty">Keine offenen Bestellungen</div>}
-        <div className="ausgabe-grid">
-          {liste.map((b) => (
-            <div className="ausgabe-row" key={b.id}>
-              <span className="ausgabe-num">{b.ausgabeNummer ? "Ausgabe " + b.ausgabeNummer : "–"}</span>
-              <div className="ausgabe-info">
-                <div className="ausgabe-nr">Nr. {b.nummer}</div>
-                <span className={"status-tag status-" + b.essenStatus}>{essenStatusLabel(b.essenStatus)}</span>
+        <div className="ausgabe-fullscreen">
+          {kacheln.map(({ b, hoeheVh, gross }) => {
+            const nummerFont = Math.min(9, Math.max(2.2, hoeheVh * 0.34));
+            const ausgabeFont = Math.min(7, Math.max(1.8, hoeheVh * 0.26));
+            const statusFont = Math.min(3, Math.max(1.2, hoeheVh * 0.14));
+            return (
+              <div key={b.id} className={"ausgabe-tile-full" + (gross ? " gross" : "")} style={{ height: hoeheVh + "vh" }}>
+                <div className="links">
+                  <span style={{ fontSize: ausgabeFont + "vh", color: "#9CA0AC", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
+                    {b.ausgabeNummer ? "Ausgabe " + b.ausgabeNummer : "–"}
+                  </span>
+                  <span style={{ fontSize: nummerFont + "vh", color: "#fff", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
+                    Nr. {b.nummer}
+                  </span>
+                </div>
+                <span className={"status-tag status-" + b.essenStatus} style={{ fontSize: statusFont + "vh" }}>
+                  {essenStatusLabel(b.essenStatus)}
+                </span>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
