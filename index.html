@@ -104,7 +104,7 @@
   storageBucket: "verpflegungsstand.firebasestorage.app",
   messagingSenderId: "808275832434",
   appId: "1:808275832434:web:5f476127a341aa4dfd5ceb"
-  };
+};
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
@@ -122,6 +122,12 @@
 
 <script type="text/babel" data-type="module">
 const { useState, useEffect, useMemo, useCallback } = React;
+
+// Festes Admin-Passwort für die Artikelverwaltung. Vor dem Veröffentlichen
+// anpassen — wer die index.html einsehen kann, sieht auch dieses Passwort,
+// es schützt also nur vor versehentlichem Ändern durch Kassenpersonal,
+// nicht vor absichtlichem Zugriff.
+const ADMIN_PASSWORT = "Kuckucksbaehnel2026";
 
 function useFirebaseReady() {
   const [ready, setReady] = useState(!!window.__db);
@@ -187,6 +193,19 @@ function Artikelverwaltung() {
   const [preis, setPreis] = useState("");
   const [kategorie, setKategorie] = useState("essen");
   const [error, setError] = useState("");
+  const [admin, setAdmin] = useState(false);
+  const [pwInput, setPwInput] = useState("");
+  const [pwError, setPwError] = useState("");
+
+  const unlock = () => {
+    if (pwInput === ADMIN_PASSWORT) {
+      setAdmin(true);
+      setPwError("");
+      setPwInput("");
+    } else {
+      setPwError("Falsches Passwort.");
+    }
+  };
 
   const add = async () => {
     if (!name.trim() || !preis) { setError("Name und Preis eintragen."); return; }
@@ -208,30 +227,50 @@ function Artikelverwaltung() {
   return (
     <div className="wrap">
       <h1>Artikelverwaltung</h1>
-      <div className="row-form">
-        <input placeholder="Artikelname" value={name} onChange={(e) => setName(e.target.value)} />
-        <input placeholder="Preis (z.B. 3,50)" value={preis} onChange={(e) => setPreis(e.target.value)} style={{ width: 120 }} />
-        <select value={kategorie} onChange={(e) => setKategorie(e.target.value)}>
-          <option value="essen">Essen</option>
-          <option value="getraenk">Getränk</option>
-        </select>
-        <button className="btn" onClick={add}>Artikel hinzufügen</button>
-      </div>
+
+      {!admin && (
+        <div className="row-form" style={{ alignItems: "center" }}>
+          <input
+            type="password"
+            placeholder="Admin-Passwort"
+            value={pwInput}
+            onChange={(e) => setPwInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && unlock()}
+            style={{ width: 180 }}
+          />
+          <button className="btn" onClick={unlock}>Entsperren</button>
+          {pwError && <span style={{ color: "var(--rust)", fontSize: 13 }}>{pwError}</span>}
+        </div>
+      )}
+
+      {admin && (
+        <div className="row-form">
+          <input placeholder="Artikelname" value={name} onChange={(e) => setName(e.target.value)} />
+          <input placeholder="Preis (z.B. 3,50)" value={preis} onChange={(e) => setPreis(e.target.value)} style={{ width: 120 }} />
+          <select value={kategorie} onChange={(e) => setKategorie(e.target.value)}>
+            <option value="essen">Essen</option>
+            <option value="getraenk">Getränk</option>
+          </select>
+          <button className="btn" onClick={add}>Artikel hinzufügen</button>
+          <button className="del" onClick={() => setAdmin(false)} style={{ marginLeft: "auto" }}>Sperren</button>
+        </div>
+      )}
+
       {error && <p style={{ color: "var(--rust)", fontSize: 13 }}>{error}</p>}
       {!ready && <p>Verbinde mit Firebase…</p>}
       <table>
-        <thead><tr><th>Name</th><th>Kategorie</th><th>Preis</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Kategorie</th><th>Preis</th>{admin && <th></th>}</tr></thead>
         <tbody>
           {artikel.map((a) => (
             <tr key={a.id}>
               <td>{a.name}</td>
               <td>{a.kategorie === "getraenk" ? "Getränk" : "Essen"}</td>
               <td>{a.preis.toFixed(2)} €</td>
-              <td><button className="del" onClick={() => remove(a.id)}>Löschen</button></td>
+              {admin && <td><button className="del" onClick={() => remove(a.id)}>Löschen</button></td>}
             </tr>
           ))}
           {artikel.length === 0 && ready && (
-            <tr><td colSpan="4" style={{ color: "var(--steel)" }}>Noch keine Artikel angelegt.</td></tr>
+            <tr><td colSpan={admin ? 4 : 3} style={{ color: "var(--steel)" }}>Noch keine Artikel angelegt.</td></tr>
           )}
         </tbody>
       </table>
@@ -341,7 +380,7 @@ function formatElapsed(ms) {
   return Math.floor(s / 60) + ":" + (s % 60).toString().padStart(2, "0");
 }
 
-function Monitor({ kategorie, titel, fertigFeld }) {
+function Monitor({ kategorie, titel, fertigFeld, route }) {
   const bestellungen = useBestellungen();
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -361,6 +400,7 @@ function Monitor({ kategorie, titel, fertigFeld }) {
 
   return (
     <div className="monitor">
+      <Nav current={route} />
       <div className="wrap">
         <div className="mon-head">
           <h1>{titel}</h1>
@@ -403,10 +443,10 @@ function App() {
   }, []);
 
   if (route === "monitor-getraenke") {
-    return <Monitor kategorie="getraenk" titel="Getränke" fertigFeld="getraenkeFertig" />;
+    return <Monitor kategorie="getraenk" titel="Getränke" fertigFeld="getraenkeFertig" route={route} />;
   }
   if (route === "monitor-essen") {
-    return <Monitor kategorie="essen" titel="Essen / Grill" fertigFeld="essenFertig" />;
+    return <Monitor kategorie="essen" titel="Essen / Grill" fertigFeld="essenFertig" route={route} />;
   }
 
   return (
