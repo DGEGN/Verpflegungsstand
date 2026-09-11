@@ -188,13 +188,13 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
     getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc,
-    onSnapshot, query, orderBy, serverTimestamp
+    onSnapshot, query, orderBy, serverTimestamp, runTransaction
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const app = initializeApp(window.firebaseConfig);
   const db = getFirestore(app);
   window.__db = db;
-  window.__fs = { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot, query, orderBy, serverTimestamp };
+  window.__fs = { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot, query, orderBy, serverTimestamp, runTransaction };
 
   window.dispatchEvent(new Event("firebase-ready"));
 </script>
@@ -308,6 +308,20 @@ function useEinstellungen() {
 async function setEinstellung(patch) {
   const { doc, setDoc } = window.__fs;
   await setDoc(doc(window.__db, "einstellungen", "ausgabesystem"), patch, { merge: true });
+}
+
+// Vergibt fortlaufende Bestellnummern beginnend bei 1. Läuft als Firestore-
+// Transaktion, damit auch bei mehreren gleichzeitig tippenden Kassen jede
+// Nummer nur einmal vergeben wird.
+async function naechsteBestellnummer() {
+  const { doc, runTransaction } = window.__fs;
+  const ref = doc(window.__db, "einstellungen", "zaehler");
+  return runTransaction(window.__db, async (tx) => {
+    const snap = await tx.get(ref);
+    const aktuell = snap.exists() && snap.data().naechsteNummer ? snap.data().naechsteNummer : 1;
+    tx.set(ref, { naechsteNummer: aktuell + 1 }, { merge: true });
+    return aktuell;
+  });
 }
 
 // Weist wartenden Essens-Bestellungen automatisch eine freie, geöffnete Ausgabe
@@ -580,7 +594,7 @@ function Kasse() {
         });
         setLastNummer(bestehend.nummer);
       } else {
-        const nummer = Math.floor(Date.now() / 1000) % 1000;
+        const nummer = await naechsteBestellnummer();
         await addDoc(collection(window.__db, "bestellungen"), {
           nummer, items, gesamtpreis: totalCost, gegeben: gegebenZahl, rueckgeld: rueckgeld,
           hinweis: hinweis.trim(), hatEssen, hatGetraenke,
