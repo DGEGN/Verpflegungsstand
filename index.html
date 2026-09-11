@@ -98,13 +98,13 @@
   // Firebase-Konfiguration: eigene Projektdaten aus der Firebase-Konsole eintragen
   // (Project Settings -> General -> "Your apps" -> SDK setup and configuration)
   window.firebaseConfig = {
-  apiKey: "AIzaSyA6gB4xskgydH3v6TtmvKpNgjlaSio_8IM",
+    apiKey: "AIzaSyA6gB4xskgydH3v6TtmvKpNgjlaSio_8IM",
   authDomain: "verpflegungsstand.firebaseapp.com",
   projectId: "verpflegungsstand",
   storageBucket: "verpflegungsstand.firebasestorage.app",
   messagingSenderId: "808275832434",
   appId: "1:808275832434:web:5f476127a341aa4dfd5ceb"
-};
+  };
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
@@ -128,6 +128,13 @@ const { useState, useEffect, useMemo, useCallback } = React;
 // es schützt also nur vor versehentlichem Ändern durch Kassenpersonal,
 // nicht vor absichtlichem Zugriff.
 const ADMIN_PASSWORT = "Kuckucksbaehnel2026";
+
+const KATEGORIEN = [
+  { id: "essen", label: "Essen" },
+  { id: "alkoholfrei", label: "Alkoholfreie Getränke" },
+  { id: "alkoholisch", label: "Alkoholisches" },
+];
+const katLabel = (id) => (KATEGORIEN.find((k) => k.id === id) || {}).label || id;
 
 function useFirebaseReady() {
   const [ready, setReady] = useState(!!window.__db);
@@ -248,8 +255,7 @@ function Artikelverwaltung() {
           <input placeholder="Artikelname" value={name} onChange={(e) => setName(e.target.value)} />
           <input placeholder="Preis (z.B. 3,50)" value={preis} onChange={(e) => setPreis(e.target.value)} style={{ width: 120 }} />
           <select value={kategorie} onChange={(e) => setKategorie(e.target.value)}>
-            <option value="essen">Essen</option>
-            <option value="getraenk">Getränk</option>
+            {KATEGORIEN.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
           </select>
           <button className="btn" onClick={add}>Artikel hinzufügen</button>
           <button className="del" onClick={() => setAdmin(false)} style={{ marginLeft: "auto" }}>Sperren</button>
@@ -264,7 +270,7 @@ function Artikelverwaltung() {
           {artikel.map((a) => (
             <tr key={a.id}>
               <td>{a.name}</td>
-              <td>{a.kategorie === "getraenk" ? "Getränk" : "Essen"}</td>
+              <td>{katLabel(a.kategorie)}</td>
               <td>{a.preis.toFixed(2)} €</td>
               {admin && <td><button className="del" onClick={() => remove(a.id)}>Löschen</button></td>}
             </tr>
@@ -317,7 +323,7 @@ function Kasse() {
         const a = artikel.find((x) => x.id === id);
         return { artikelId: id, name: a.name, kategorie: a.kategorie, preis: a.preis, menge: qty };
       });
-      const hatGetraenke = items.some((i) => i.kategorie === "getraenk");
+      const hatGetraenke = items.some((i) => i.kategorie === "alkoholfrei" || i.kategorie === "alkoholisch");
       const hatEssen = items.some((i) => i.kategorie === "essen");
 
       // fortlaufende Nummer: einfache Zeitbasis, reicht für den Kioskbetrieb
@@ -352,19 +358,28 @@ function Kasse() {
       {error && <p style={{ color: "var(--rust)" }}>{error}</p>}
       {!ready && <p>Verbinde mit Firebase…</p>}
       {ready && artikel.length === 0 && <p style={{ color: "var(--steel)" }}>Noch keine Artikel angelegt — zuerst in der Artikelverwaltung eintragen.</p>}
-      <div className="grid">
-        {artikel.map((a) => (
-          <div className="card" key={a.id}>
-            <div>{a.name}</div>
-            <div className="price">{a.preis.toFixed(2)} €</div>
-            <div className="stepper">
-              <button onClick={() => changeQty(a.id, -1)} disabled={!cart[a.id]}>-</button>
-              <span className="qty">{cart[a.id] || 0}</span>
-              <button onClick={() => changeQty(a.id, 1)}>+</button>
+      {KATEGORIEN.map((kat) => {
+        const items = artikel.filter((a) => a.kategorie === kat.id);
+        if (items.length === 0) return null;
+        return (
+          <div key={kat.id} style={{ marginBottom: 20 }}>
+            <h2 style={{ fontSize: 15, margin: "0 0 8px" }}>{kat.label}</h2>
+            <div className="grid">
+              {items.map((a) => (
+                <div className="card" key={a.id}>
+                  <div>{a.name}</div>
+                  <div className="price">{a.preis.toFixed(2)} €</div>
+                  <div className="stepper">
+                    <button onClick={() => changeQty(a.id, -1)} disabled={!cart[a.id]}>-</button>
+                    <span className="qty">{cart[a.id] || 0}</span>
+                    <button onClick={() => changeQty(a.id, 1)}>+</button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
       <div className="bar">
         <span><b>{totalItems}</b> Artikel — <b>{totalCost.toFixed(2)} €</b></span>
         <button className="btn" onClick={submit} disabled={totalItems === 0 || submitting}>
@@ -380,7 +395,7 @@ function formatElapsed(ms) {
   return Math.floor(s / 60) + ":" + (s % 60).toString().padStart(2, "0");
 }
 
-function Monitor({ kategorie, titel, fertigFeld, route }) {
+function Monitor({ kategorien, titel, fertigFeld, route }) {
   const bestellungen = useBestellungen();
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -389,9 +404,9 @@ function Monitor({ kategorie, titel, fertigFeld, route }) {
   }, []);
 
   const offen = useMemo(() => bestellungen.filter((b) => {
-    const hatKategorie = b.items.some((i) => i.kategorie === kategorie);
+    const hatKategorie = b.items.some((i) => kategorien.includes(i.kategorie));
     return hatKategorie && !b[fertigFeld];
-  }), [bestellungen, kategorie, fertigFeld]);
+  }), [bestellungen, kategorien, fertigFeld]);
 
   const markFertig = async (b) => {
     const { doc, updateDoc } = window.__fs;
@@ -420,8 +435,11 @@ function Monitor({ kategorie, titel, fertigFeld, route }) {
                   <span className="t-time">{formatElapsed(elapsed)}</span>
                 </div>
                 <ul className="t-items">
-                  {b.items.filter((i) => i.kategorie === kategorie).map((i, idx) => (
-                    <li key={idx}><b>{i.menge}×</b>{i.name}</li>
+                  {b.items.filter((i) => kategorien.includes(i.kategorie)).map((i, idx) => (
+                    <li key={idx}>
+                      <b>{i.menge}×</b>{i.name}
+                      {kategorien.length > 1 && <span style={{ color: "var(--steel)", fontSize: 11 }}> · {katLabel(i.kategorie)}</span>}
+                    </li>
                   ))}
                 </ul>
                 <button className="ready-btn" onClick={() => markFertig(b)}>Als fertig markieren</button>
@@ -443,10 +461,10 @@ function App() {
   }, []);
 
   if (route === "monitor-getraenke") {
-    return <Monitor kategorie="getraenk" titel="Getränke" fertigFeld="getraenkeFertig" route={route} />;
+    return <Monitor kategorien={["alkoholfrei", "alkoholisch"]} titel="Getränke" fertigFeld="getraenkeFertig" route={route} />;
   }
   if (route === "monitor-essen") {
-    return <Monitor kategorie="essen" titel="Essen / Grill" fertigFeld="essenFertig" route={route} />;
+    return <Monitor kategorien={["essen"]} titel="Essen / Grill" fertigFeld="essenFertig" route={route} />;
   }
 
   return (
