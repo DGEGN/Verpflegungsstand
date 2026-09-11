@@ -40,6 +40,7 @@
   .nav a.active { border-bottom-color: var(--amber); color: var(--amber); }
   .wrap { max-width: 900px; margin: 0 auto; padding: 16px; }
   h1 { font-size: 20px; margin: 4px 0 16px; }
+  h2.section-title { font-size: 15px; margin: 28px 0 10px; border-top: 1px solid var(--steel-line); padding-top: 18px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 10px; }
   .card { background: #FFFDF9; border: 1px solid var(--steel-line); border-radius: 6px; padding: 12px; }
   .stepper { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
@@ -51,17 +52,31 @@
   .price { color: var(--steel); font-size: 12px; }
   .bar {
     position: sticky; bottom: 0; background: var(--ink); color: var(--paper);
-    padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
     margin-top: 16px; border-radius: 6px; gap: 12px;
   }
   .bar b { color: var(--amber); }
+  .rueckgeld-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .rueckgeld-row input { width: 90px; }
   .btn { background: var(--amber); color: var(--ink); border: none; border-radius: 5px; padding: 12px 18px; font-size: 14px; cursor: pointer; }
   .btn:disabled { opacity: .4; cursor: default; }
+  .btn.secondary { background: var(--paper-2); }
   input, select { padding: 8px 10px; border: 1px solid var(--steel-line); border-radius: 5px; font-size: 14px; background: #FFFDF9; color: var(--ink); }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--steel-line); }
-  .row-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .row-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
   .del { color: var(--rust); cursor: pointer; background: none; border: none; font-size: 13px; }
+  .edit-link { color: var(--amber-deep); cursor: pointer; background: none; border: none; font-size: 13px; margin-right: 10px; }
+  .order-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--steel-line); font-size: 13px; flex-wrap: wrap; }
+  .order-row .meta { color: var(--steel); }
+  .order-actions button { margin-left: 8px; }
+  .editing-banner { background: var(--amber); color: var(--ink); padding: 8px 12px; border-radius: 5px; font-size: 13px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+  .modal-box { width: 85%; max-width: 520px; min-height: 55vh; background: var(--paper); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 32px; text-align: center; }
+  .modal-box h2 { font-size: 22px; margin: 0; }
+  .modal-box p { color: var(--steel); font-size: 14px; margin: 0; }
+  .modal-ok { background: var(--amber); color: var(--ink); border: none; border-radius: 6px; padding: 14px 40px; font-size: 16px; cursor: pointer; }
 
   .monitor { background: var(--ink); min-height: 100vh; color: var(--paper); }
   .monitor .wrap { max-width: 1100px; }
@@ -72,6 +87,7 @@
   .ticket { background: #26241F; border: 1px solid #3A3833; border-left: 4px solid var(--steel); border-radius: 5px; padding: 14px; }
   .ticket.warn { border-left-color: var(--amber); }
   .ticket.late { border-left-color: var(--rust); }
+  .ticket.wartend { opacity: 0.6; }
   .t-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
   .t-num { font-size: 24px; }
   .t-time { font-size: 12px; color: var(--steel); }
@@ -80,11 +96,21 @@
   .t-items { list-style: none; margin: 0 0 10px; padding: 0; }
   .t-items li { font-size: 14px; margin-bottom: 3px; }
   .t-items b { color: var(--amber); margin-right: 6px; }
-  .ready-btn { width: 100%; background: transparent; border: 1px solid var(--amber); color: var(--amber); border-radius: 4px; padding: 9px; font-size: 13px; cursor: pointer; }
+  .ready-btn { width: 100%; background: transparent; border: 1px solid var(--amber); color: var(--amber); border-radius: 4px; padding: 9px; font-size: 13px; cursor: pointer; margin-top: 4px; }
+  .ready-btn.sage { border-color: var(--sage); color: var(--sage); }
   .empty { text-align: center; color: var(--steel); padding: 60px 20px; }
-  .kat-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
-  .kat-getraenk { background: #1D4E4E; color: #9FE1CB; }
-  .kat-essen { background: #4A1B0C; color: #F0997B; }
+  .ausgabe-badge { display: inline-block; background: var(--amber); color: var(--ink); font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 12px; margin-left: 6px; }
+  .ausgabe-wait { display: inline-block; background: #3A3833; color: var(--steel); font-size: 11px; padding: 2px 9px; border-radius: 12px; margin-left: 6px; }
+
+  .ausgabe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 16px; }
+  .ausgabe-row { display: flex; align-items: center; justify-content: space-between; background: #26241F; border: 1px solid #3A3833; border-radius: 6px; padding: 16px 18px; }
+  .ausgabe-num { font-size: 30px; color: var(--amber); min-width: 50px; }
+  .ausgabe-info { text-align: right; }
+  .ausgabe-nr { font-size: 26px; }
+  .status-tag { display: inline-block; font-size: 12px; padding: 3px 10px; border-radius: 12px; margin-top: 4px; }
+  .status-wartend { background: #3A3833; color: var(--steel); }
+  .status-inBearbeitung { background: #4A3416; color: var(--amber); }
+  .status-fertig { background: #1E3A22; color: var(--sage); }
 </style>
 </head>
 <body>
@@ -127,7 +153,7 @@ const { useState, useEffect, useMemo, useCallback } = React;
 // anpassen — wer die index.html einsehen kann, sieht auch dieses Passwort,
 // es schützt also nur vor versehentlichem Ändern durch Kassenpersonal,
 // nicht vor absichtlichem Zugriff.
-const ADMIN_PASSWORT = "Kuckucksbaehnel2026";
+const ADMIN_PASSWORT = "aenderMich123";
 
 const KATEGORIEN = [
   { id: "essen", label: "Essen" },
@@ -135,6 +161,39 @@ const KATEGORIEN = [
   { id: "alkoholisch", label: "Alkoholisches" },
 ];
 const katLabel = (id) => (KATEGORIEN.find((k) => k.id === id) || {}).label || id;
+
+const ANZAHL_AUSGABEN = 3;
+
+function zeitKlasse(elapsedMs) {
+  const mins = elapsedMs / 60000;
+  if (mins >= 7) return "late";
+  if (mins >= 4) return "warn";
+  return "";
+}
+
+function essenStatusLabel(s) {
+  return { wartend: "Wartend", inBearbeitung: "In Bearbeitung", fertig: "Fertig" }[s] || s;
+}
+
+function formatElapsed(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return Math.floor(s / 60) + ":" + (s % 60).toString().padStart(2, "0");
+}
+
+function istAktiv(b) { return !b.storniert && !b.archiviert; }
+
+function orderStatusText(b) {
+  if (b.storniert) return "Storniert";
+  if (b.archiviert) return "Abgeschlossen";
+  const teile = [];
+  if (b.hatGetraenke) teile.push("Getränke: " + (b.getraenkeFertig ? "fertig" : "offen"));
+  if (b.hatEssen) {
+    let t = "Essen: " + essenStatusLabel(b.essenStatus);
+    if (b.ausgabeNummer) t += " (Ausgabe " + b.ausgabeNummer + ")";
+    teile.push(t);
+  }
+  return teile.join(" · ") || "offen";
+}
 
 function useFirebaseReady() {
   const [ready, setReady] = useState(!!window.__db);
@@ -174,7 +233,35 @@ function useBestellungen() {
     });
     return unsub;
   }, [ready]);
-  return bestellungen;
+  return { bestellungen, ready };
+}
+
+// Weist wartenden Essens-Bestellungen automatisch eine freie Ausgabe (1-3) zu,
+// sobald eine frei wird. Läuft in jeder Ansicht, die eingebunden ist
+// (Essen-Monitor, Ausgabemonitor) und reagiert auf Änderungen live.
+function useAusgabenZuweisung(bestellungen, ready) {
+  useEffect(() => {
+    if (!ready) return;
+    const aktiv = bestellungen.filter(istAktiv);
+    const belegt = new Set(
+      aktiv.filter((b) => b.essenStatus === "inBearbeitung" || b.essenStatus === "fertig").map((b) => b.ausgabeNummer)
+    );
+    const frei = [];
+    for (let n = 1; n <= ANZAHL_AUSGABEN; n++) if (!belegt.has(n)) frei.push(n);
+    if (frei.length === 0) return;
+    const wartend = aktiv
+      .filter((b) => b.essenStatus === "wartend")
+      .sort((a, b) => (a.erstelltAmMs || 0) - (b.erstelltAmMs || 0));
+    const zuWeisen = wartend.slice(0, frei.length);
+    if (zuWeisen.length === 0) return;
+    const { doc, updateDoc } = window.__fs;
+    zuWeisen.forEach((b, idx) => {
+      updateDoc(doc(window.__db, "bestellungen", b.id), {
+        essenStatus: "inBearbeitung",
+        ausgabeNummer: frei[idx],
+      }).catch(() => {});
+    });
+  }, [bestellungen, ready]);
 }
 
 function Nav({ current }) {
@@ -183,6 +270,7 @@ function Nav({ current }) {
     ["artikel", "Artikelverwaltung"],
     ["monitor-getraenke", "Monitor Getränke"],
     ["monitor-essen", "Monitor Essen"],
+    ["ausgabemonitor", "Ausgabemonitor"],
   ];
   return (
     <div className="nav">
@@ -203,6 +291,10 @@ function Artikelverwaltung() {
   const [admin, setAdmin] = useState(false);
   const [pwInput, setPwInput] = useState("");
   const [pwError, setPwError] = useState("");
+  const [editId, setEditId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editPreis, setEditPreis] = useState("");
+  const [editKategorie, setEditKategorie] = useState("essen");
 
   const unlock = () => {
     if (pwInput === ADMIN_PASSWORT) {
@@ -231,12 +323,33 @@ function Artikelverwaltung() {
     await deleteDoc(doc(window.__db, "artikel", id));
   };
 
+  const startEdit = (a) => {
+    setEditId(a.id);
+    setEditName(a.name);
+    setEditPreis(String(a.preis).replace(".", ","));
+    setEditKategorie(a.kategorie);
+  };
+
+  const cancelEdit = () => setEditId(null);
+
+  const saveEdit = async (id) => {
+    if (!editName.trim() || !editPreis) { setError("Name und Preis eintragen."); return; }
+    setError("");
+    const { doc, updateDoc } = window.__fs;
+    await updateDoc(doc(window.__db, "artikel", id), {
+      name: editName.trim(),
+      preis: parseFloat(editPreis.replace(",", ".")),
+      kategorie: editKategorie,
+    });
+    setEditId(null);
+  };
+
   return (
     <div className="wrap">
       <h1>Artikelverwaltung</h1>
 
       {!admin && (
-        <div className="row-form" style={{ alignItems: "center" }}>
+        <div className="row-form">
           <input
             type="password"
             placeholder="Admin-Passwort"
@@ -268,12 +381,33 @@ function Artikelverwaltung() {
         <thead><tr><th>Name</th><th>Kategorie</th><th>Preis</th>{admin && <th></th>}</tr></thead>
         <tbody>
           {artikel.map((a) => (
-            <tr key={a.id}>
-              <td>{a.name}</td>
-              <td>{katLabel(a.kategorie)}</td>
-              <td>{a.preis.toFixed(2)} €</td>
-              {admin && <td><button className="del" onClick={() => remove(a.id)}>Löschen</button></td>}
-            </tr>
+            editId === a.id ? (
+              <tr key={a.id}>
+                <td><input value={editName} onChange={(e) => setEditName(e.target.value)} style={{ width: "100%" }} /></td>
+                <td>
+                  <select value={editKategorie} onChange={(e) => setEditKategorie(e.target.value)}>
+                    {KATEGORIEN.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
+                  </select>
+                </td>
+                <td><input value={editPreis} onChange={(e) => setEditPreis(e.target.value)} style={{ width: 80 }} /></td>
+                <td>
+                  <button className="edit-link" onClick={() => saveEdit(a.id)}>Speichern</button>
+                  <button className="del" onClick={cancelEdit}>Abbrechen</button>
+                </td>
+              </tr>
+            ) : (
+              <tr key={a.id}>
+                <td>{a.name}</td>
+                <td>{katLabel(a.kategorie)}</td>
+                <td>{a.preis.toFixed(2)} €</td>
+                {admin && (
+                  <td>
+                    <button className="edit-link" onClick={() => startEdit(a)}>Bearbeiten</button>
+                    <button className="del" onClick={() => remove(a.id)}>Löschen</button>
+                  </td>
+                )}
+              </tr>
+            )
           ))}
           {artikel.length === 0 && ready && (
             <tr><td colSpan={admin ? 4 : 3} style={{ color: "var(--steel)" }}>Noch keine Artikel angelegt.</td></tr>
@@ -284,13 +418,32 @@ function Artikelverwaltung() {
   );
 }
 
+function StornoModal({ nummer, onClose }) {
+  if (nummer == null) return null;
+  return (
+    <div className="modal-overlay">
+      <div className="modal-box">
+        <h2>Bestellung Nr. {nummer} storniert</h2>
+        <p>Die Bestellung wurde storniert und erscheint nicht mehr auf den Monitoren.</p>
+        <button className="modal-ok" onClick={onClose}>OK</button>
+      </div>
+    </div>
+  );
+}
+
 function Kasse() {
   const ready = useFirebaseReady();
   const artikel = useArtikel();
+  const { bestellungen } = useBestellungen();
   const [cart, setCart] = useState({});
+  const [gegeben, setGegeben] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [lastNummer, setLastNummer] = useState(null);
   const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [stornoNummer, setStornoNummer] = useState(null);
+  const [suchNummer, setSuchNummer] = useState("");
+  const [suchTreffer, setSuchTreffer] = useState(undefined); // undefined = noch nicht gesucht, null = nichts gefunden
 
   useEffect(() => {
     if (lastNummer === null) return;
@@ -312,52 +465,115 @@ function Kasse() {
     const a = artikel.find((x) => x.id === id);
     return sum + (a ? a.preis * qty : 0);
   }, 0);
+  const gegebenZahl = gegeben ? parseFloat(gegeben.replace(",", ".")) : null;
+  const rueckgeld = gegebenZahl !== null && !isNaN(gegebenZahl) ? gegebenZahl - totalCost : null;
+
+  const resetForm = () => { setCart({}); setGegeben(""); setEditingId(null); };
 
   const submit = async () => {
     if (totalItems === 0 || submitting) return;
     setSubmitting(true);
     setError("");
     try {
-      const { collection, addDoc, serverTimestamp } = window.__fs;
+      const { collection, doc, addDoc, updateDoc, serverTimestamp } = window.__fs;
       const items = Object.entries(cart).map(([id, qty]) => {
         const a = artikel.find((x) => x.id === id);
         return { artikelId: id, name: a.name, kategorie: a.kategorie, preis: a.preis, menge: qty };
       });
-      const hatGetraenke = items.some((i) => i.kategorie === "alkoholfrei" || i.kategorie === "alkoholisch");
       const hatEssen = items.some((i) => i.kategorie === "essen");
+      const hatGetraenke = items.some((i) => i.kategorie === "alkoholfrei" || i.kategorie === "alkoholisch");
 
-      // fortlaufende Nummer: einfache Zeitbasis, reicht für den Kioskbetrieb
-      const nummer = Math.floor(Date.now() / 1000) % 1000;
-
-      await addDoc(collection(window.__db, "bestellungen"), {
-        nummer,
-        items,
-        gesamtpreis: totalCost,
-        getraenkeFertig: !hatGetraenke,
-        essenFertig: !hatEssen,
-        erstelltAm: serverTimestamp(),
-        erstelltAmMs: Date.now(),
-      });
-      setLastNummer(nummer);
-      setCart({});
+      if (editingId) {
+        const bestehend = bestellungen.find((b) => b.id === editingId);
+        let essenStatus = bestehend.essenStatus;
+        let ausgabeNummer = bestehend.ausgabeNummer;
+        if (!hatEssen) { essenStatus = "kein"; ausgabeNummer = null; }
+        else if (essenStatus === "kein") { essenStatus = "wartend"; ausgabeNummer = null; }
+        else if (essenStatus === "fertig") { essenStatus = ausgabeNummer ? "inBearbeitung" : "wartend"; }
+        await updateDoc(doc(window.__db, "bestellungen", editingId), {
+          items,
+          gesamtpreis: totalCost,
+          hatEssen,
+          hatGetraenke,
+          getraenkeFertig: hatGetraenke ? false : true,
+          essenStatus,
+          ausgabeNummer,
+        });
+        setLastNummer(bestehend.nummer);
+      } else {
+        const nummer = Math.floor(Date.now() / 1000) % 1000;
+        await addDoc(collection(window.__db, "bestellungen"), {
+          nummer,
+          items,
+          gesamtpreis: totalCost,
+          gegeben: gegebenZahl,
+          rueckgeld: rueckgeld,
+          hatEssen,
+          hatGetraenke,
+          getraenkeFertig: !hatGetraenke,
+          essenStatus: hatEssen ? "wartend" : "kein",
+          ausgabeNummer: null,
+          storniert: false,
+          archiviert: false,
+          erstelltAm: serverTimestamp(),
+          erstelltAmMs: Date.now(),
+        });
+        setLastNummer(nummer);
+      }
+      resetForm();
     } catch (e) {
-      setError("Bestellung konnte nicht gesendet werden.");
+      setError("Bestellung konnte nicht gesendet/gespeichert werden.");
     } finally {
       setSubmitting(false);
     }
   };
 
+  const startEditOrder = (b) => {
+    const neuerCart = {};
+    b.items.forEach((i) => { neuerCart[i.artikelId] = i.menge; });
+    setCart(neuerCart);
+    setEditingId(b.id);
+    setGegeben("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const stornieren = async (b) => {
+    const { doc, updateDoc } = window.__fs;
+    await updateDoc(doc(window.__db, "bestellungen", b.id), { storniert: true });
+    setStornoNummer(b.nummer);
+    if (editingId === b.id) resetForm();
+  };
+
+  const aktive = bestellungen.filter(istAktiv).sort((a, b) => (b.erstelltAmMs || 0) - (a.erstelltAmMs || 0));
+
+  const suchen = () => {
+    const n = parseInt(suchNummer, 10);
+    if (isNaN(n)) { setSuchTreffer(null); return; }
+    const treffer = bestellungen.filter((b) => b.nummer === n).sort((a, b) => (b.erstelltAmMs || 0) - (a.erstelltAmMs || 0))[0];
+    setSuchTreffer(treffer || null);
+  };
+
   return (
     <div className="wrap">
+      <StornoModal nummer={stornoNummer} onClose={() => setStornoNummer(null)} />
       <h1>Kasse</h1>
+
+      {editingId && (
+        <div className="editing-banner">
+          <span>Bestellung wird bearbeitet — Änderungen speichern oder abbrechen.</span>
+          <button className="del" onClick={resetForm} style={{ color: "var(--ink)" }}>Abbrechen</button>
+        </div>
+      )}
+
       {lastNummer !== null && (
         <p style={{ background: "var(--sage)", color: "#fff", padding: "8px 12px", borderRadius: 5, display: "inline-block" }}>
-          Bestellung Nr. {lastNummer} gesendet
+          Bestellung Nr. {lastNummer} {editingId ? "aktualisiert" : "gesendet"}
         </p>
       )}
       {error && <p style={{ color: "var(--rust)" }}>{error}</p>}
       {!ready && <p>Verbinde mit Firebase…</p>}
       {ready && artikel.length === 0 && <p style={{ color: "var(--steel)" }}>Noch keine Artikel angelegt — zuerst in der Artikelverwaltung eintragen.</p>}
+
       {KATEGORIEN.map((kat) => {
         const items = artikel.filter((a) => a.kategorie === kat.id);
         if (items.length === 0) return null;
@@ -380,72 +596,231 @@ function Kasse() {
           </div>
         );
       })}
+
       <div className="bar">
         <span><b>{totalItems}</b> Artikel — <b>{totalCost.toFixed(2)} €</b></span>
+        {!editingId && (
+          <div className="rueckgeld-row">
+            <label htmlFor="gegeben">Gegeben:</label>
+            <input id="gegeben" value={gegeben} onChange={(e) => setGegeben(e.target.value)} placeholder="0,00" />
+            {rueckgeld !== null && !isNaN(rueckgeld) && (
+              <span>Rückgeld: <b style={{ color: rueckgeld < 0 ? "var(--rust)" : "var(--amber)" }}>{rueckgeld.toFixed(2)} €</b></span>
+            )}
+          </div>
+        )}
         <button className="btn" onClick={submit} disabled={totalItems === 0 || submitting}>
-          {submitting ? "Sende…" : "Bestellung senden"}
+          {submitting ? "Sende…" : editingId ? "Änderungen speichern" : "Bestellung senden"}
         </button>
       </div>
+
+      <h2 className="section-title">Aktuelle Bestellungen</h2>
+      {aktive.length === 0 && <p style={{ color: "var(--steel)", fontSize: 13 }}>Keine offenen Bestellungen.</p>}
+      {aktive.map((b) => (
+        <div className="order-row" key={b.id}>
+          <span><b>Nr. {b.nummer}</b> — {b.gesamtpreis.toFixed(2)} € <span className="meta">· {orderStatusText(b)}</span></span>
+          <span className="order-actions">
+            <button className="edit-link" onClick={() => startEditOrder(b)}>Bearbeiten</button>
+            <button className="del" onClick={() => stornieren(b)}>Stornieren</button>
+          </span>
+        </div>
+      ))}
+
+      <h2 className="section-title">Bestellung erneut aufrufen</h2>
+      <div className="row-form">
+        <input placeholder="Bestellnummer" value={suchNummer} onChange={(e) => setSuchNummer(e.target.value)} style={{ width: 130 }} onKeyDown={(e) => e.key === "Enter" && suchen()} />
+        <button className="btn secondary" onClick={suchen}>Suchen</button>
+      </div>
+      {suchTreffer === null && <p style={{ color: "var(--rust)", fontSize: 13 }}>Keine Bestellung mit dieser Nummer gefunden.</p>}
+      {suchTreffer && (
+        <div className="order-row">
+          <span>
+            <b>Nr. {suchTreffer.nummer}</b> — {suchTreffer.gesamtpreis.toFixed(2)} € <span className="meta">· {orderStatusText(suchTreffer)}</span>
+            <br /><span className="meta">{suchTreffer.items.map((i) => i.menge + "× " + i.name).join(", ")}</span>
+          </span>
+          {istAktiv(suchTreffer) && (
+            <span className="order-actions">
+              <button className="edit-link" onClick={() => startEditOrder(suchTreffer)}>Bearbeiten</button>
+              <button className="del" onClick={() => stornieren(suchTreffer)}>Stornieren</button>
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function formatElapsed(ms) {
-  const s = Math.max(0, Math.floor(ms / 1000));
-  return Math.floor(s / 60) + ":" + (s % 60).toString().padStart(2, "0");
-}
-
-function Monitor({ kategorien, titel, fertigFeld, route }) {
-  const bestellungen = useBestellungen();
+function MonitorGetraenke() {
+  const { bestellungen } = useBestellungen();
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  const offen = useMemo(() => bestellungen.filter((b) => {
-    const hatKategorie = b.items.some((i) => kategorien.includes(i.kategorie));
-    return hatKategorie && !b[fertigFeld];
-  }), [bestellungen, kategorien, fertigFeld]);
+  const offen = useMemo(() => {
+    return bestellungen
+      .filter((b) => istAktiv(b) && b.hatGetraenke && !b.getraenkeFertig)
+      .sort((a, b) => {
+        const wartetA = a.hatEssen && !a.ausgabeNummer ? 1 : 0;
+        const wartetB = b.hatEssen && !b.ausgabeNummer ? 1 : 0;
+        if (wartetA !== wartetB) return wartetA - wartetB;
+        return (a.erstelltAmMs || 0) - (b.erstelltAmMs || 0);
+      });
+  }, [bestellungen]);
 
   const markFertig = async (b) => {
     const { doc, updateDoc } = window.__fs;
-    await updateDoc(doc(window.__db, "bestellungen", b.id), { [fertigFeld]: true });
+    await updateDoc(doc(window.__db, "bestellungen", b.id), {
+      getraenkeFertig: true,
+      ...(!b.hatEssen ? { archiviert: true } : {}),
+    });
   };
 
   return (
     <div className="monitor">
-      <Nav current={route} />
+      <Nav current="monitor-getraenke" />
       <div className="wrap">
         <div className="mon-head">
-          <h1>{titel}</h1>
+          <h1>Getränke</h1>
           <span className="pill">{offen.length} offen</span>
         </div>
         {offen.length === 0 && <div className="empty">Keine offenen Bestellungen</div>}
         <div className="tickets">
           {offen.map((b) => {
-            const created = b.erstelltAmMs || Date.now();
-            const elapsed = now - created;
-            const mins = elapsed / 60000;
-            const cls = mins >= 10 ? "late" : mins >= 5 ? "warn" : "";
+            const elapsed = now - (b.erstelltAmMs || Date.now());
+            const cls = zeitKlasse(elapsed);
             return (
               <div className={"ticket " + cls} key={b.id}>
                 <div className="t-top">
-                  <span className="t-num">Nr. {b.nummer}</span>
+                  <span className="t-num">
+                    Nr. {b.nummer}
+                    {b.hatEssen && (b.ausgabeNummer
+                      ? <span className="ausgabe-badge">Ausgabe {b.ausgabeNummer}</span>
+                      : <span className="ausgabe-wait">wartet auf Ausgabe</span>)}
+                  </span>
                   <span className="t-time">{formatElapsed(elapsed)}</span>
                 </div>
                 <ul className="t-items">
-                  {b.items.filter((i) => kategorien.includes(i.kategorie)).map((i, idx) => (
-                    <li key={idx}>
-                      <b>{i.menge}×</b>{i.name}
-                      {kategorien.length > 1 && <span style={{ color: "var(--steel)", fontSize: 11 }}> · {katLabel(i.kategorie)}</span>}
-                    </li>
+                  {b.items.filter((i) => i.kategorie === "alkoholfrei" || i.kategorie === "alkoholisch").map((i, idx) => (
+                    <li key={idx}><b>{i.menge}×</b>{i.name}</li>
                   ))}
                 </ul>
                 <button className="ready-btn" onClick={() => markFertig(b)}>Als fertig markieren</button>
               </div>
             );
           })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MonitorEssen() {
+  const { bestellungen, ready } = useBestellungen();
+  useAusgabenZuweisung(bestellungen, ready);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const liste = useMemo(() => {
+    return bestellungen
+      .filter((b) => istAktiv(b) && b.hatEssen && b.essenStatus !== "kein")
+      .sort((a, b) => {
+        const wA = a.essenStatus === "wartend" ? 1 : 0;
+        const wB = b.essenStatus === "wartend" ? 1 : 0;
+        if (wA !== wB) return wA - wB;
+        return (a.erstelltAmMs || 0) - (b.erstelltAmMs || 0);
+      });
+  }, [bestellungen]);
+
+  const markFertig = async (b) => {
+    const { doc, updateDoc } = window.__fs;
+    await updateDoc(doc(window.__db, "bestellungen", b.id), { essenStatus: "fertig" });
+  };
+  const markAbgeholt = async (b) => {
+    const { doc, updateDoc } = window.__fs;
+    await updateDoc(doc(window.__db, "bestellungen", b.id), { archiviert: true });
+  };
+
+  return (
+    <div className="monitor">
+      <Nav current="monitor-essen" />
+      <div className="wrap">
+        <div className="mon-head">
+          <h1>Essen / Grill</h1>
+          <span className="pill">{liste.length} offen</span>
+        </div>
+        {liste.length === 0 && <div className="empty">Keine offenen Bestellungen</div>}
+        <div className="tickets">
+          {liste.map((b) => {
+            const elapsed = now - (b.erstelltAmMs || Date.now());
+            const cls = b.essenStatus === "wartend" ? "wartend" : zeitKlasse(elapsed);
+            return (
+              <div className={"ticket " + cls} key={b.id}>
+                <div className="t-top">
+                  <span className="t-num">
+                    Nr. {b.nummer}
+                    {b.ausgabeNummer ? <span className="ausgabe-badge">Ausgabe {b.ausgabeNummer}</span> : <span className="ausgabe-wait">Warteschlange</span>}
+                  </span>
+                  <span className="t-time">{formatElapsed(elapsed)}</span>
+                </div>
+                <ul className="t-items">
+                  {b.items.filter((i) => i.kategorie === "essen").map((i, idx) => (
+                    <li key={idx}><b>{i.menge}×</b>{i.name}</li>
+                  ))}
+                </ul>
+                {b.essenStatus === "wartend" && <p style={{ fontSize: 12, color: "var(--steel)", margin: "0 0 4px" }}>Wartet auf freie Ausgabe</p>}
+                {b.essenStatus === "inBearbeitung" && (
+                  <button className="ready-btn" onClick={() => markFertig(b)}>Als fertig markieren</button>
+                )}
+                {b.essenStatus === "fertig" && (
+                  <button className="ready-btn sage" onClick={() => markAbgeholt(b)}>Abgeholt</button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Ausgabemonitor() {
+  const { bestellungen, ready } = useBestellungen();
+  useAusgabenZuweisung(bestellungen, ready);
+
+  const liste = useMemo(() => {
+    return bestellungen
+      .filter((b) => istAktiv(b) && b.hatEssen)
+      .sort((a, b) => {
+        const ax = a.ausgabeNummer || 99;
+        const bx = b.ausgabeNummer || 99;
+        if (ax !== bx) return ax - bx;
+        return (a.erstelltAmMs || 0) - (b.erstelltAmMs || 0);
+      });
+  }, [bestellungen]);
+
+  return (
+    <div className="monitor">
+      <Nav current="ausgabemonitor" />
+      <div className="wrap">
+        <div className="mon-head">
+          <h1>Ausgabemonitor</h1>
+          <span className="pill">{liste.length} Bestellungen</span>
+        </div>
+        {liste.length === 0 && <div className="empty">Keine offenen Bestellungen</div>}
+        <div className="ausgabe-grid">
+          {liste.map((b) => (
+            <div className="ausgabe-row" key={b.id}>
+              <span className="ausgabe-num">{b.ausgabeNummer ? "Ausgabe " + b.ausgabeNummer : "–"}</span>
+              <div className="ausgabe-info">
+                <div className="ausgabe-nr">Nr. {b.nummer}</div>
+                <span className={"status-tag status-" + b.essenStatus}>{essenStatusLabel(b.essenStatus)}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -460,12 +835,9 @@ function App() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
-  if (route === "monitor-getraenke") {
-    return <Monitor kategorien={["alkoholfrei", "alkoholisch"]} titel="Getränke" fertigFeld="getraenkeFertig" route={route} />;
-  }
-  if (route === "monitor-essen") {
-    return <Monitor kategorien={["essen"]} titel="Essen / Grill" fertigFeld="essenFertig" route={route} />;
-  }
+  if (route === "monitor-getraenke") return <MonitorGetraenke />;
+  if (route === "monitor-essen") return <MonitorEssen />;
+  if (route === "ausgabemonitor") return <Ausgabemonitor />;
 
   return (
     <div>
