@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Vorschau-Stufe: offen für Lesen/Schreiben, damit Kasse und Monitore
+    // sofort ohne Login funktionieren. Vor dem echten Betrieb unbedingt
+    // verschärfen (siehe Hinweis unten).
+    match /artikel/{artikelId} {
+      allow read, write: if true;
+    }
+    match /bestellungen/{bestellungId} {
+      allow read, write: if true;
+    }
+  }
+}
+
+// Sobald ihr von der Vorschau in den echten Betrieb geht, empfiehlt sich
+// mindestens eine Absicherung wie bei der Fahrgastzähler-App
+// (istBearbeiter()-Prüfung über benutzer/{uid}.freigegeben), damit nicht
+// jeder im Internet Bestellungen anlegen oder löschen kann.

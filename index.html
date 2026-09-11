@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Küchenmonitor</title>
+<style>
+  :root {
+    --ink: #1C1B19;
+    --paper: #F2EDE4;
+    --paper-2: #E8E2D4;
+    --amber: #E8A33D;
+    --amber-deep: #C97F1F;
+    --rust: #C1443B;
+    --sage: #6B8F58;
+    --steel: #8A8578;
+    --steel-line: #D8D2C3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .nav {
+    display: flex;
+    gap: 0;
+    background: var(--ink);
+    overflow-x: auto;
+  }
+  .nav a {
+    color: var(--paper);
+    text-decoration: none;
+    padding: 12px 16px;
+    font-size: 13px;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+  }
+  .nav a.active { border-bottom-color: var(--amber); color: var(--amber); }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 10px; }
+  .card { background: #FFFDF9; border: 1px solid var(--steel-line); border-radius: 6px; padding: 12px; }
+  .stepper { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .stepper button {
+    width: 32px; height: 32px; border-radius: 5px; border: 1px solid var(--steel-line);
+    background: var(--paper); font-size: 16px; cursor: pointer;
+  }
+  .qty { font-size: 16px; min-width: 20px; text-align: center; }
+  .price { color: var(--steel); font-size: 12px; }
+  .bar {
+    position: sticky; bottom: 0; background: var(--ink); color: var(--paper);
+    padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;
+    margin-top: 16px; border-radius: 6px; gap: 12px;
+  }
+  .bar b { color: var(--amber); }
+  .btn { background: var(--amber); color: var(--ink); border: none; border-radius: 5px; padding: 12px 18px; font-size: 14px; cursor: pointer; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  input, select { padding: 8px 10px; border: 1px solid var(--steel-line); border-radius: 5px; font-size: 14px; background: #FFFDF9; color: var(--ink); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--steel-line); }
+  .row-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .del { color: var(--rust); cursor: pointer; background: none; border: none; font-size: 13px; }
+
+  .monitor { background: var(--ink); min-height: 100vh; color: var(--paper); }
+  .monitor .wrap { max-width: 1100px; }
+  .mon-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .mon-head h1 { color: var(--paper); margin: 0; }
+  .pill { background: #26241F; border: 1px solid #3A3833; color: var(--amber); padding: 4px 12px; border-radius: 20px; font-size: 13px; }
+  .tickets { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 12px; }
+  .ticket { background: #26241F; border: 1px solid #3A3833; border-left: 4px solid var(--steel); border-radius: 5px; padding: 14px; }
+  .ticket.warn { border-left-color: var(--amber); }
+  .ticket.late { border-left-color: var(--rust); }
+  .t-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .t-num { font-size: 24px; }
+  .t-time { font-size: 12px; color: var(--steel); }
+  .ticket.warn .t-time { color: var(--amber); }
+  .ticket.late .t-time { color: var(--rust); }
+  .t-items { list-style: none; margin: 0 0 10px; padding: 0; }
+  .t-items li { font-size: 14px; margin-bottom: 3px; }
+  .t-items b { color: var(--amber); margin-right: 6px; }
+  .ready-btn { width: 100%; background: transparent; border: 1px solid var(--amber); color: var(--amber); border-radius: 4px; padding: 9px; font-size: 13px; cursor: pointer; }
+  .empty { text-align: center; color: var(--steel); padding: 60px 20px; }
+  .kat-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
+  .kat-getraenk { background: #1D4E4E; color: #9FE1CB; }
+  .kat-essen { background: #4A1B0C; color: #F0997B; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="module">
+  // Firebase-Konfiguration: eigene Projektdaten aus der Firebase-Konsole eintragen
+  // (Project Settings -> General -> "Your apps" -> SDK setup and configuration)
+  window.firebaseConfig = {
+    apiKey: "DEIN_API_KEY",
+    authDomain: "DEIN_PROJEKT.firebaseapp.com",
+    projectId: "DEIN_PROJEKT",
+    storageBucket: "DEIN_PROJEKT.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
+  };
+
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
+    onSnapshot, query, orderBy, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const app = initializeApp(window.firebaseConfig);
+  const db = getFirestore(app);
+  window.__db = db;
+  window.__fs = { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp };
+
+  window.dispatchEvent(new Event("firebase-ready"));
+</script>
+
+<script type="text/babel" data-type="module">
+const { useState, useEffect, useMemo, useCallback } = React;
+
+function useFirebaseReady() {
+  const [ready, setReady] = useState(!!window.__db);
+  useEffect(() => {
+    if (ready) return;
+    const onReady = () => setReady(true);
+    window.addEventListener("firebase-ready", onReady);
+    return () => window.removeEventListener("firebase-ready", onReady);
+  }, [ready]);
+  return ready;
+}
+
+function useArtikel() {
+  const ready = useFirebaseReady();
+  const [artikel, setArtikel] = useState([]);
+  useEffect(() => {
+    if (!ready) return;
+    const { collection, onSnapshot, query, orderBy } = window.__fs;
+    const q = query(collection(window.__db, "artikel"), orderBy("name"));
+    const unsub = onSnapshot(q, (snap) => {
+      setArtikel(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, [ready]);
+  return artikel;
+}
+
+function useBestellungen() {
+  const ready = useFirebaseReady();
+  const [bestellungen, setBestellungen] = useState([]);
+  useEffect(() => {
+    if (!ready) return;
+    const { collection, onSnapshot, query, orderBy } = window.__fs;
+    const q = query(collection(window.__db, "bestellungen"), orderBy("erstelltAm", "asc"));
+    const unsub = onSnapshot(q, (snap) => {
+      setBestellungen(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, [ready]);
+  return bestellungen;
+}
+
+function Nav({ current }) {
+  const links = [
+    ["kasse", "Kasse"],
+    ["artikel", "Artikelverwaltung"],
+    ["monitor-getraenke", "Monitor Getränke"],
+    ["monitor-essen", "Monitor Essen"],
+  ];
+  return (
+    <div className="nav">
+      {links.map(([key, label]) => (
+        <a key={key} href={"#" + key} className={current === key ? "active" : ""}>{label}</a>
+      ))}
+    </div>
+  );
+}
+
+function Artikelverwaltung() {
+  const ready = useFirebaseReady();
+  const artikel = useArtikel();
+  const [name, setName] = useState("");
+  const [preis, setPreis] = useState("");
+  const [kategorie, setKategorie] = useState("essen");
+  const [error, setError] = useState("");
+
+  const add = async () => {
+    if (!name.trim() || !preis) { setError("Name und Preis eintragen."); return; }
+    setError("");
+    const { collection, addDoc } = window.__fs;
+    await addDoc(collection(window.__db, "artikel"), {
+      name: name.trim(),
+      preis: parseFloat(preis.replace(",", ".")),
+      kategorie,
+    });
+    setName(""); setPreis("");
+  };
+
+  const remove = async (id) => {
+    const { doc, deleteDoc } = window.__fs;
+    await deleteDoc(doc(window.__db, "artikel", id));
+  };
+
+  return (
+    <div className="wrap">
+      <h1>Artikelverwaltung</h1>
+      <div className="row-form">
+        <input placeholder="Artikelname" value={name} onChange={(e) => setName(e.target.value)} />
+        <input placeholder="Preis (z.B. 3,50)" value={preis} onChange={(e) => setPreis(e.target.value)} style={{ width: 120 }} />
+        <select value={kategorie} onChange={(e) => setKategorie(e.target.value)}>
+          <option value="essen">Essen</option>
+          <option value="getraenk">Getränk</option>
+        </select>
+        <button className="btn" onClick={add}>Artikel hinzufügen</button>
+      </div>
+      {error && <p style={{ color: "var(--rust)", fontSize: 13 }}>{error}</p>}
+      {!ready && <p>Verbinde mit Firebase…</p>}
+      <table>
+        <thead><tr><th>Name</th><th>Kategorie</th><th>Preis</th><th></th></tr></thead>
+        <tbody>
+          {artikel.map((a) => (
+            <tr key={a.id}>
+              <td>{a.name}</td>
+              <td>{a.kategorie === "getraenk" ? "Getränk" : "Essen"}</td>
+              <td>{a.preis.toFixed(2)} €</td>
+              <td><button className="del" onClick={() => remove(a.id)}>Löschen</button></td>
+            </tr>
+          ))}
+          {artikel.length === 0 && ready && (
+            <tr><td colSpan="4" style={{ color: "var(--steel)" }}>Noch keine Artikel angelegt.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Kasse() {
+  const ready = useFirebaseReady();
+  const artikel = useArtikel();
+  const [cart, setCart] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [lastNummer, setLastNummer] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (lastNummer === null) return;
+    const t = setTimeout(() => setLastNummer(null), 2600);
+    return () => clearTimeout(t);
+  }, [lastNummer]);
+
+  const changeQty = (id, delta) => {
+    setCart((prev) => {
+      const next = { ...prev };
+      const val = (next[id] || 0) + delta;
+      if (val <= 0) delete next[id]; else next[id] = val;
+      return next;
+    });
+  };
+
+  const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
+  const totalCost = Object.entries(cart).reduce((sum, [id, qty]) => {
+    const a = artikel.find((x) => x.id === id);
+    return sum + (a ? a.preis * qty : 0);
+  }, 0);
+
+  const submit = async () => {
+    if (totalItems === 0 || submitting) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      const { collection, addDoc, serverTimestamp } = window.__fs;
+      const items = Object.entries(cart).map(([id, qty]) => {
+        const a = artikel.find((x) => x.id === id);
+        return { artikelId: id, name: a.name, kategorie: a.kategorie, preis: a.preis, menge: qty };
+      });
+      const hatGetraenke = items.some((i) => i.kategorie === "getraenk");
+      const hatEssen = items.some((i) => i.kategorie === "essen");
+
+      // fortlaufende Nummer: einfache Zeitbasis, reicht für den Kioskbetrieb
+      const nummer = Math.floor(Date.now() / 1000) % 1000;
+
+      await addDoc(collection(window.__db, "bestellungen"), {
+        nummer,
+        items,
+        gesamtpreis: totalCost,
+        getraenkeFertig: !hatGetraenke,
+        essenFertig: !hatEssen,
+        erstelltAm: serverTimestamp(),
+        erstelltAmMs: Date.now(),
+      });
+      setLastNummer(nummer);
+      setCart({});
+    } catch (e) {
+      setError("Bestellung konnte nicht gesendet werden.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="wrap">
+      <h1>Kasse</h1>
+      {lastNummer !== null && (
+        <p style={{ background: "var(--sage)", color: "#fff", padding: "8px 12px", borderRadius: 5, display: "inline-block" }}>
+          Bestellung Nr. {lastNummer} gesendet
+        </p>
+      )}
+      {error && <p style={{ color: "var(--rust)" }}>{error}</p>}
+      {!ready && <p>Verbinde mit Firebase…</p>}
+      {ready && artikel.length === 0 && <p style={{ color: "var(--steel)" }}>Noch keine Artikel angelegt — zuerst in der Artikelverwaltung eintragen.</p>}
+      <div className="grid">
+        {artikel.map((a) => (
+          <div className="card" key={a.id}>
+            <div>{a.name}</div>
+            <div className="price">{a.preis.toFixed(2)} €</div>
+            <div className="stepper">
+              <button onClick={() => changeQty(a.id, -1)} disabled={!cart[a.id]}>-</button>
+              <span className="qty">{cart[a.id] || 0}</span>
+              <button onClick={() => changeQty(a.id, 1)}>+</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="bar">
+        <span><b>{totalItems}</b> Artikel — <b>{totalCost.toFixed(2)} €</b></span>
+        <button className="btn" onClick={submit} disabled={totalItems === 0 || submitting}>
+          {submitting ? "Sende…" : "Bestellung senden"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function formatElapsed(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return Math.floor(s / 60) + ":" + (s % 60).toString().padStart(2, "0");
+}
+
+function Monitor({ kategorie, titel, fertigFeld }) {
+  const bestellungen = useBestellungen();
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const offen = useMemo(() => bestellungen.filter((b) => {
+    const hatKategorie = b.items.some((i) => i.kategorie === kategorie);
+    return hatKategorie && !b[fertigFeld];
+  }), [bestellungen, kategorie, fertigFeld]);
+
+  const markFertig = async (b) => {
+    const { doc, updateDoc } = window.__fs;
+    await updateDoc(doc(window.__db, "bestellungen", b.id), { [fertigFeld]: true });
+  };
+
+  return (
+    <div className="monitor">
+      <div className="wrap">
+        <div className="mon-head">
+          <h1>{titel}</h1>
+          <span className="pill">{offen.length} offen</span>
+        </div>
+        {offen.length === 0 && <div className="empty">Keine offenen Bestellungen</div>}
+        <div className="tickets">
+          {offen.map((b) => {
+            const created = b.erstelltAmMs || Date.now();
+            const elapsed = now - created;
+            const mins = elapsed / 60000;
+            const cls = mins >= 10 ? "late" : mins >= 5 ? "warn" : "";
+            return (
+              <div className={"ticket " + cls} key={b.id}>
+                <div className="t-top">
+                  <span className="t-num">Nr. {b.nummer}</span>
+                  <span className="t-time">{formatElapsed(elapsed)}</span>
+                </div>
+                <ul className="t-items">
+                  {b.items.filter((i) => i.kategorie === kategorie).map((i, idx) => (
+                    <li key={idx}><b>{i.menge}×</b>{i.name}</li>
+                  ))}
+                </ul>
+                <button className="ready-btn" onClick={() => markFertig(b)}>Als fertig markieren</button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [route, setRoute] = useState(window.location.hash.replace("#", "") || "kasse");
+  useEffect(() => {
+    const onHash = () => setRoute(window.location.hash.replace("#", "") || "kasse");
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  if (route === "monitor-getraenke") {
+    return <Monitor kategorie="getraenk" titel="Getränke" fertigFeld="getraenkeFertig" />;
+  }
+  if (route === "monitor-essen") {
+    return <Monitor kategorie="essen" titel="Essen / Grill" fertigFeld="essenFertig" />;
+  }
+
+  return (
+    <div>
+      <Nav current={route} />
+      {route === "artikel" ? <Artikelverwaltung /> : <Kasse />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
