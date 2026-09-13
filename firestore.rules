@@ -14,6 +14,9 @@ service cloud.firestore {
     match /einstellungen/{docId} {
       allow read, write: if true;
     }
+    match /kassenbuch/{eintragId} {
+      allow read, write: if true;
+    }
   }
 }
 

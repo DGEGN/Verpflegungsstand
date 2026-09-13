@@ -177,12 +177,12 @@
   // Firebase-Konfiguration: eigene Projektdaten aus der Firebase-Konsole eintragen
   // (Project Settings -> General -> "Your apps" -> SDK setup and configuration)
   window.firebaseConfig = {
-    apiKey: "AIzaSyA6gB4xskgydH3v6TtmvKpNgjlaSio_8IM",
-  authDomain: "verpflegungsstand.firebaseapp.com",
-  projectId: "verpflegungsstand",
-  storageBucket: "verpflegungsstand.firebasestorage.app",
-  messagingSenderId: "808275832434",
-  appId: "1:808275832434:web:5f476127a341aa4dfd5ceb"
+    apiKey: "DEIN_API_KEY",
+    authDomain: "DEIN_PROJEKT.firebaseapp.com",
+    projectId: "DEIN_PROJEKT",
+    storageBucket: "DEIN_PROJEKT.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
   };
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -206,7 +206,7 @@ const { useState, useEffect, useMemo, useRef } = React;
 // anpassen — wer die index.html einsehen kann, sieht auch dieses Passwort,
 // es schützt also nur vor versehentlichem Ändern durch Kassenpersonal,
 // nicht vor absichtlichem Zugriff.
-const ADMIN_PASSWORT = "Kuckucksbaehnel2026";
+const ADMIN_PASSWORT = "aenderMich123";
 
 const KATEGORIEN = [
   { id: "essen", label: "Essen" },
@@ -310,6 +310,36 @@ async function setEinstellung(patch) {
   await setDoc(doc(window.__db, "einstellungen", "ausgabesystem"), patch, { merge: true });
 }
 
+function useKassenbuchEinstellung() {
+  const ready = useFirebaseReady();
+  const [zurueckgesetztAm, setZurueckgesetztAm] = useState(0);
+  useEffect(() => {
+    if (!ready) return;
+    const { doc, onSnapshot } = window.__fs;
+    const ref = doc(window.__db, "einstellungen", "kassenbuch");
+    const unsub = onSnapshot(ref, (snap) => {
+      setZurueckgesetztAm(snap.exists() ? (snap.data().zurueckgesetztAm || 0) : 0);
+    });
+    return unsub;
+  }, [ready]);
+  return zurueckgesetztAm;
+}
+
+function useKassenbuchEintraege() {
+  const ready = useFirebaseReady();
+  const [eintraege, setEintraege] = useState([]);
+  useEffect(() => {
+    if (!ready) return;
+    const { collection, onSnapshot, query, orderBy } = window.__fs;
+    const q = query(collection(window.__db, "kassenbuch"), orderBy("erstelltAm", "asc"));
+    const unsub = onSnapshot(q, (snap) => {
+      setEintraege(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, [ready]);
+  return eintraege;
+}
+
 // Vergibt fortlaufende Bestellnummern beginnend bei 1. Läuft als Firestore-
 // Transaktion, damit auch bei mehreren gleichzeitig tippenden Kassen jede
 // Nummer nur einmal vergeben wird.
@@ -356,6 +386,7 @@ function Nav({ current }) {
   const links = [
     ["kasse", "Kasse"],
     ["artikel", "Artikel"],
+    ["kassenbuch", "Kassenbuch"],
     ["monitor-getraenke", "Getränke"],
     ["monitor-essen", "Essen"],
     ["ausgabemonitor", "Ausgabe"],
@@ -510,6 +541,87 @@ function Artikelverwaltung() {
           )}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function Kassenbuch() {
+  const ready = useFirebaseReady();
+  const alleEintraege = useKassenbuchEintraege();
+  const zurueckgesetztAm = useKassenbuchEinstellung();
+  const [art, setArt] = useState("einzahlung");
+  const [betrag, setBetrag] = useState("");
+  const [notiz, setNotiz] = useState("");
+  const [error, setError] = useState("");
+
+  const eintraege = useMemo(
+    () => alleEintraege.filter((e) => (e.erstelltAmMs || 0) >= zurueckgesetztAm),
+    [alleEintraege, zurueckgesetztAm]
+  );
+
+  const bestand = eintraege.reduce((sum, e) => {
+    if (e.art === "auszahlung") return sum - e.betrag;
+    return sum + e.betrag;
+  }, 0);
+
+  const artLabel = (a) => ({ anfangsbestand: "Anfangsbestand", einzahlung: "Einzahlung", auszahlung: "Auszahlung" }[a] || a);
+
+  const eintragen = async () => {
+    const zahl = parseFloat(betrag.replace(",", "."));
+    if (!betrag || isNaN(zahl) || zahl <= 0) { setError("Bitte einen gültigen Betrag eintragen."); return; }
+    setError("");
+    const { collection, addDoc, serverTimestamp } = window.__fs;
+    await addDoc(collection(window.__db, "kassenbuch"), {
+      art, betrag: zahl, notiz: notiz.trim(),
+      erstelltAm: serverTimestamp(), erstelltAmMs: Date.now(),
+    });
+    setBetrag(""); setNotiz("");
+  };
+
+  const neuerTag = async () => {
+    if (!window.confirm("Kassenbuch wirklich zurücksetzen und mit einem neuen Anfangsbestand starten? Die bisherigen Einträge bleiben erhalten, zählen aber nicht mehr zum aktuellen Bestand.")) return;
+    const { doc, setDoc } = window.__fs;
+    await setDoc(doc(window.__db, "einstellungen", "kassenbuch"), { zurueckgesetztAm: Date.now() }, { merge: true });
+  };
+
+  return (
+    <div className="wrap">
+      <h1 className="page-title">Kassenbuch</h1>
+      {!ready && <p>Verbinde mit Firebase…</p>}
+
+      <div className="card" style={{ marginBottom: 20, textAlign: "center", padding: 22 }}>
+        <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>Aktueller Bestand</div>
+        <div style={{ fontSize: 34, fontFamily: "'Poppins', sans-serif", fontWeight: 700, color: "var(--navy)" }}>{bestand.toFixed(2)} €</div>
+      </div>
+
+      <div className="row-form">
+        <select value={art} onChange={(e) => setArt(e.target.value)}>
+          <option value="anfangsbestand">Anfangsbestand</option>
+          <option value="einzahlung">Einzahlung</option>
+          <option value="auszahlung">Auszahlung</option>
+        </select>
+        <input placeholder="Betrag (z.B. 20,00)" value={betrag} onChange={(e) => setBetrag(e.target.value)} style={{ width: 130 }} />
+        <input placeholder="Notiz (optional)" value={notiz} onChange={(e) => setNotiz(e.target.value)} style={{ flex: 1, minWidth: 140 }} />
+        <button className="btn" onClick={eintragen}>Eintragen</button>
+      </div>
+      {error && <p style={{ color: "var(--rust)", fontSize: 13 }}>{error}</p>}
+
+      <h2 className="section-title">Einträge</h2>
+      {eintraege.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>Noch keine Einträge seit dem letzten Zurücksetzen.</p>}
+      {eintraege.slice().reverse().map((e) => (
+        <div className="order-row" key={e.id}>
+          <span>
+            <b>{e.art === "auszahlung" ? "−" : "+"}{e.betrag.toFixed(2)} €</b>
+            <span className="meta"> · {artLabel(e.art)}{e.notiz ? " · " + e.notiz : ""}</span>
+          </span>
+        </div>
+      ))}
+
+      <h2 className="section-title">Neuer Tag</h2>
+      <p style={{ color: "var(--muted)", fontSize: 13 }}>
+        Setzt den aktuellen Bestand auf 0 zurück. Alle bisherigen Einträge bleiben zur Nachvollziehbarkeit gespeichert, zählen aber nicht mehr mit — danach zuerst wieder einen Anfangsbestand eintragen.
+      </p>
+      <button className="btn secondary" onClick={neuerTag}>Kassenbuch zurücksetzen</button>
     </div>
   );
 }
@@ -1040,7 +1152,7 @@ function App() {
   return (
     <div>
       <Nav current={route} />
-      {route === "artikel" ? <Artikelverwaltung /> : <Kasse />}
+      {route === "artikel" ? <Artikelverwaltung /> : route === "kassenbuch" ? <Kassenbuch /> : <Kasse />}
     </div>
   );
 }
