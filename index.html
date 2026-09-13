@@ -76,6 +76,9 @@
   .bar b { color: var(--led-amber); }
   .hinweis-row { display: flex; align-items: center; gap: 8px; font-size: 13px; width: 100%; margin-top: 4px; }
   .hinweis-row input { flex: 1; }
+  .zahlungsart-row { display: flex; gap: 6px; }
+  .zahlungsart-btn { background: #26385A; border: 1px solid #3A4E73; color: #C9D2E3; border-radius: 9px; padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .zahlungsart-btn.aktiv { background: var(--led-amber); border-color: var(--led-amber); color: var(--led); }
   .rueckgeld-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
   .rueckgeld-row input { width: 90px; }
 
@@ -177,12 +180,12 @@
   // Firebase-Konfiguration: eigene Projektdaten aus der Firebase-Konsole eintragen
   // (Project Settings -> General -> "Your apps" -> SDK setup and configuration)
   window.firebaseConfig = {
-    apiKey: "AIzaSyA6gB4xskgydH3v6TtmvKpNgjlaSio_8IM",
-  authDomain: "verpflegungsstand.firebaseapp.com",
-  projectId: "verpflegungsstand",
-  storageBucket: "verpflegungsstand.firebasestorage.app",
-  messagingSenderId: "808275832434",
-  appId: "1:808275832434:web:5f476127a341aa4dfd5ceb"
+    apiKey: "DEIN_API_KEY",
+    authDomain: "DEIN_PROJEKT.firebaseapp.com",
+    projectId: "DEIN_PROJEKT",
+    storageBucket: "DEIN_PROJEKT.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
   };
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -206,7 +209,7 @@ const { useState, useEffect, useMemo, useRef } = React;
 // anpassen — wer die index.html einsehen kann, sieht auch dieses Passwort,
 // es schützt also nur vor versehentlichem Ändern durch Kassenpersonal,
 // nicht vor absichtlichem Zugriff.
-const ADMIN_PASSWORT = "Kuckucksbaehnel2026";
+const ADMIN_PASSWORT = "aenderMich123";
 
 const KATEGORIEN = [
   { id: "essen", label: "Essen" },
@@ -217,6 +220,9 @@ const katLabel = (id) => (KATEGORIEN.find((k) => k.id === id) || {}).label || id
 
 const ANZAHL_AUSGABEN = 3;
 const EINSTELLUNGEN_STANDARD = { ausgabe1: true, ausgabe2: true, ausgabe3: true, essenBesetzt: true, getraenkeBesetzt: true };
+const SCHEINE = [500, 200, 100, 50, 20, 10, 5];
+const MUENZEN = [2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01];
+const formatStueckelung = (wert) => (wert >= 1 ? wert + " €" : Math.round(wert * 100) + " Ct");
 
 function zeitKlasse(elapsedMs) {
   const mins = elapsedMs / 60000;
@@ -239,7 +245,7 @@ function istAktiv(b) { return !b.storniert && !b.archiviert; }
 function orderStatusText(b) {
   if (b.storniert) return "Storniert";
   if (b.archiviert) return "Abgeschlossen";
-  const teile = [];
+  const teile = [b.zahlungsart === "karte" ? "Karte" : "Bar"];
   if (b.hatGetraenke) teile.push("Getränke: " + (b.getraenkeFertig ? "fertig" : "offen"));
   if (b.hatEssen) {
     let t = "Essen: " + essenStatusLabel(b.essenStatus);
@@ -545,36 +551,99 @@ function Artikelverwaltung() {
   );
 }
 
+function Notenrechner({ onErfassen, buttonLabel }) {
+  const [counts, setCounts] = useState({});
+  const alle = [...SCHEINE.map((w) => ({ wert: w, typ: "schein" })), ...MUENZEN.map((w) => ({ wert: w, typ: "muenze" }))];
+  const summe = alle.reduce((s, d) => s + (counts[d.wert] || 0) * d.wert, 0);
+  const setCount = (wert, val) => setCounts((prev) => ({ ...prev, [wert]: Math.max(0, parseInt(val, 10) || 0) }));
+  const aufschluesselung = () => alle.filter((d) => (counts[d.wert] || 0) > 0)
+    .map((d) => (counts[d.wert]) + "× " + formatStueckelung(d.wert)).join(", ");
+  const reset = () => setCounts({});
+
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", margin: "4px 0" }}>Scheine</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(78px,1fr))", gap: 8, marginBottom: 12 }}>
+        {SCHEINE.map((w) => (
+          <div key={w} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 12, color: "var(--muted)" }}>{formatStueckelung(w)}</label>
+            <input type="number" min="0" inputMode="numeric" value={counts[w] || ""} onChange={(e) => setCount(w, e.target.value)} placeholder="0" />
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", margin: "4px 0" }}>Münzen</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(78px,1fr))", gap: 8, marginBottom: 14 }}>
+        {MUENZEN.map((w) => (
+          <div key={w} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 12, color: "var(--muted)" }}>{formatStueckelung(w)}</label>
+            <input type="number" min="0" inputMode="numeric" value={counts[w] || ""} onChange={(e) => setCount(w, e.target.value)} placeholder="0" />
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <span>Summe: <b style={{ fontSize: 18 }}>{summe.toFixed(2)} €</b></span>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn secondary" onClick={reset} type="button">Zurücksetzen</button>
+          <button className="btn" disabled={summe <= 0} onClick={() => { onErfassen(summe, aufschluesselung()); reset(); }} type="button">{buttonLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Kassenbuch() {
   const ready = useFirebaseReady();
   const alleEintraege = useKassenbuchEintraege();
   const zurueckgesetztAm = useKassenbuchEinstellung();
+  const { bestellungen } = useBestellungen();
   const [art, setArt] = useState("einzahlung");
   const [betrag, setBetrag] = useState("");
   const [notiz, setNotiz] = useState("");
   const [error, setError] = useState("");
+  const [zeigeVorverkauf, setZeigeVorverkauf] = useState(false);
+  const [zeigeNachbestand, setZeigeNachbestand] = useState(false);
+  const [zeigeBarListe, setZeigeBarListe] = useState(false);
 
   const eintraege = useMemo(
     () => alleEintraege.filter((e) => (e.erstelltAmMs || 0) >= zurueckgesetztAm),
     [alleEintraege, zurueckgesetztAm]
   );
 
-  const bestand = eintraege.reduce((sum, e) => {
+  const barBestellungen = useMemo(
+    () => bestellungen.filter((b) => !b.storniert && (b.zahlungsart || "bar") === "bar" && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
+    [bestellungen, zurueckgesetztAm]
+  );
+  const kartenBestellungen = useMemo(
+    () => bestellungen.filter((b) => !b.storniert && b.zahlungsart === "karte" && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
+    [bestellungen, zurueckgesetztAm]
+  );
+  const bareinnahmen = barBestellungen.reduce((s, b) => s + b.gesamtpreis, 0);
+  const karteneinnahmen = kartenBestellungen.reduce((s, b) => s + b.gesamtpreis, 0);
+
+  const manuelleSumme = eintraege.filter((e) => e.art !== "nachbestand").reduce((sum, e) => {
     if (e.art === "auszahlung") return sum - e.betrag;
     return sum + e.betrag;
   }, 0);
+  const bestand = manuelleSumme + bareinnahmen;
 
-  const artLabel = (a) => ({ anfangsbestand: "Anfangsbestand", einzahlung: "Einzahlung", auszahlung: "Auszahlung" }[a] || a);
+  const nachbestandEintraege = eintraege.filter((e) => e.art === "nachbestand");
+  const letzterNachbestand = nachbestandEintraege.length ? nachbestandEintraege[nachbestandEintraege.length - 1] : null;
+  const differenz = letzterNachbestand ? letzterNachbestand.betrag - bestand : null;
+
+  const artLabel = (a) => ({ anfangsbestand: "Anfangsbestand", einzahlung: "Einzahlung", auszahlung: "Auszahlung", nachbestand: "Nachbestand (Zählung)" }[a] || a);
+
+  const neuerEintrag = async (art, betrag, notiz) => {
+    const { collection, addDoc, serverTimestamp } = window.__fs;
+    await addDoc(collection(window.__db, "kassenbuch"), {
+      art, betrag, notiz: notiz || "", erstelltAm: serverTimestamp(), erstelltAmMs: Date.now(),
+    });
+  };
 
   const eintragen = async () => {
     const zahl = parseFloat(betrag.replace(",", "."));
     if (!betrag || isNaN(zahl) || zahl <= 0) { setError("Bitte einen gültigen Betrag eintragen."); return; }
     setError("");
-    const { collection, addDoc, serverTimestamp } = window.__fs;
-    await addDoc(collection(window.__db, "kassenbuch"), {
-      art, betrag: zahl, notiz: notiz.trim(),
-      erstelltAm: serverTimestamp(), erstelltAmMs: Date.now(),
-    });
+    await neuerEintrag(art, zahl, notiz.trim());
     setBetrag(""); setNotiz("");
   };
 
@@ -590,8 +659,34 @@ function Kassenbuch() {
       {!ready && <p>Verbinde mit Firebase…</p>}
 
       <div className="card" style={{ marginBottom: 20, textAlign: "center", padding: 22 }}>
-        <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>Aktueller Bestand</div>
+        <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>Aktueller Bestand (Soll)</div>
         <div style={{ fontSize: 34, fontFamily: "'Poppins', sans-serif", fontWeight: 700, color: "var(--navy)" }}>{bestand.toFixed(2)} €</div>
+        {letzterNachbestand && (
+          <div style={{ marginTop: 10, fontSize: 13, color: differenz === 0 ? "var(--muted)" : differenz > 0 ? "var(--green)" : "var(--rust)" }}>
+            Letzter gezählter Nachbestand: <b>{letzterNachbestand.betrag.toFixed(2)} €</b> — Differenz: <b>{differenz > 0 ? "+" : ""}{differenz.toFixed(2)} €</b> {differenz > 0 ? "(Überschuss)" : differenz < 0 ? "(Unterschuss)" : ""}
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, fontSize: 14 }}>
+          <span>Bareinnahmen aus {barBestellungen.length} Bestellungen: <b>{bareinnahmen.toFixed(2)} €</b></span>
+          <button className="edit-link" onClick={() => setZeigeBarListe((v) => !v)}>{zeigeBarListe ? "Ausblenden" : "Bestellungen anzeigen"}</button>
+        </div>
+        <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
+          Kartenzahlungen aus {kartenBestellungen.length} Bestellungen: <b>{karteneinnahmen.toFixed(2)} €</b> (nicht im Bargeldbestand enthalten)
+        </div>
+        {zeigeBarListe && (
+          <div style={{ marginTop: 10, maxHeight: 220, overflowY: "auto" }}>
+            {barBestellungen.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>Keine Bar-Bestellungen seit dem letzten Zurücksetzen.</p>}
+            {barBestellungen.slice().reverse().map((b) => (
+              <div className="order-row" key={b.id} style={{ padding: "6px 0" }}>
+                <span>Nr. {b.nummer} <span className="meta">· {new Date(b.erstelltAmMs).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</span></span>
+                <span><b>{b.gesamtpreis.toFixed(2)} €</b></span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="row-form">
@@ -606,12 +701,37 @@ function Kassenbuch() {
       </div>
       {error && <p style={{ color: "var(--rust)", fontSize: 13 }}>{error}</p>}
 
+      <h2 className="section-title">Vorverkaufbestand mit Scheinen/Münzen erfassen</h2>
+      {!zeigeVorverkauf ? (
+        <button className="btn secondary" onClick={() => setZeigeVorverkauf(true)}>Anfangsbestand zählen</button>
+      ) : (
+        <div className="card">
+          <Notenrechner buttonLabel="Als Anfangsbestand buchen" onErfassen={(summe, aufschluesselung) => {
+            neuerEintrag("anfangsbestand", summe, "Gezählt: " + aufschluesselung);
+            setZeigeVorverkauf(false);
+          }} />
+        </div>
+      )}
+
+      <h2 className="section-title">Nachbestand erfassen</h2>
+      <p style={{ color: "var(--muted)", fontSize: 13, marginTop: -4 }}>Zählung am Ende — wird nur zum Vergleich mit dem Soll-Bestand gespeichert, nicht mitgerechnet.</p>
+      {!zeigeNachbestand ? (
+        <button className="btn secondary" onClick={() => setZeigeNachbestand(true)}>Nachbestand zählen</button>
+      ) : (
+        <div className="card">
+          <Notenrechner buttonLabel="Als Nachbestand buchen" onErfassen={(summe, aufschluesselung) => {
+            neuerEintrag("nachbestand", summe, "Gezählt: " + aufschluesselung);
+            setZeigeNachbestand(false);
+          }} />
+        </div>
+      )}
+
       <h2 className="section-title">Einträge</h2>
       {eintraege.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>Noch keine Einträge seit dem letzten Zurücksetzen.</p>}
       {eintraege.slice().reverse().map((e) => (
         <div className="order-row" key={e.id}>
           <span>
-            <b>{e.art === "auszahlung" ? "−" : "+"}{e.betrag.toFixed(2)} €</b>
+            <b>{e.art === "auszahlung" ? "−" : e.art === "nachbestand" ? "" : "+"}{e.betrag.toFixed(2)} €</b>
             <span className="meta"> · {artLabel(e.art)}{e.notiz ? " · " + e.notiz : ""}</span>
           </span>
         </div>
@@ -633,6 +753,7 @@ function Kasse() {
   const einstellungen = useEinstellungen();
   const [cart, setCart] = useState({});
   const [gegeben, setGegeben] = useState("");
+  const [zahlungsart, setZahlungsart] = useState("bar");
   const [hinweis, setHinweis] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [lastNummer, setLastNummer] = useState(null);
@@ -677,7 +798,7 @@ function Kasse() {
   const gegebenZahl = gegeben ? parseFloat(gegeben.replace(",", ".")) : null;
   const rueckgeld = gegebenZahl !== null && !isNaN(gegebenZahl) ? gegebenZahl - totalCost : null;
 
-  const resetForm = () => { setCart({}); setGegeben(""); setHinweis(""); setEditingId(null); };
+  const resetForm = () => { setCart({}); setGegeben(""); setZahlungsart("bar"); setHinweis(""); setEditingId(null); };
 
   const submit = async () => {
     if (totalItems === 0 || submitting) return;
@@ -702,13 +823,16 @@ function Kasse() {
         await updateDoc(doc(window.__db, "bestellungen", editingId), {
           items, gesamtpreis: totalCost, hatEssen, hatGetraenke,
           getraenkeFertig: hatGetraenke ? false : true,
-          essenStatus, ausgabeNummer, hinweis: hinweis.trim(),
+          essenStatus, ausgabeNummer, hinweis: hinweis.trim(), zahlungsart,
         });
         setLastNummer(bestehend.nummer);
       } else {
         const nummer = await naechsteBestellnummer();
         await addDoc(collection(window.__db, "bestellungen"), {
-          nummer, items, gesamtpreis: totalCost, gegeben: gegebenZahl, rueckgeld: rueckgeld,
+          nummer, items, gesamtpreis: totalCost,
+          gegeben: zahlungsart === "bar" ? gegebenZahl : null,
+          rueckgeld: zahlungsart === "bar" ? rueckgeld : null,
+          zahlungsart,
           hinweis: hinweis.trim(), hatEssen, hatGetraenke,
           getraenkeFertig: !hatGetraenke,
           essenStatus: hatEssen ? "wartend" : "kein",
@@ -731,6 +855,7 @@ function Kasse() {
     setCart(neuerCart);
     setEditingId(b.id);
     setGegeben("");
+    setZahlungsart(b.zahlungsart || "bar");
     setHinweis(b.hinweis || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -818,7 +943,11 @@ function Kasse() {
 
       <div className="bar">
         <span><b>{totalItems}</b> Artikel — <b>{totalCost.toFixed(2)} €</b></span>
-        {!editingId && (
+        <div className="zahlungsart-row">
+          <button type="button" className={"zahlungsart-btn" + (zahlungsart === "bar" ? " aktiv" : "")} onClick={() => setZahlungsart("bar")}>Bar</button>
+          <button type="button" className={"zahlungsart-btn" + (zahlungsart === "karte" ? " aktiv" : "")} onClick={() => setZahlungsart("karte")}>Karte</button>
+        </div>
+        {!editingId && zahlungsart === "bar" && (
           <div className="rueckgeld-row">
             <label htmlFor="gegeben">Gegeben:</label>
             <input id="gegeben" value={gegeben} onChange={(e) => setGegeben(e.target.value)} placeholder="0,00" />
