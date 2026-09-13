@@ -27,6 +27,27 @@
     --led-grey: #7A7E88;
     --radius-lg: 18px;
     --radius-md: 12px;
+    --mon-bg: #F2F3F6;
+    --mon-card: #FFFFFF;
+    --mon-border: #E1E3E8;
+    --mon-text: #1A1A1E;
+    --mon-muted: #6B7280;
+    --mon-nav-bg: #E9EBEF;
+  }
+  body.dunkel {
+    --bg: #101014;
+    --card: #1D1F26;
+    --border: #2E313B;
+    --navy: #3D6BA8;
+    --navy-dark: #2C5088;
+    --text: #EDEEF2;
+    --muted: #9CA0AC;
+    --mon-bg: #101014;
+    --mon-card: #1D1F26;
+    --mon-border: #2E313B;
+    --mon-text: #EDEEF2;
+    --mon-muted: #9CA0AC;
+    --mon-nav-bg: #22242B;
   }
   * { box-sizing: border-box; }
   body {
@@ -37,14 +58,15 @@
   }
   h1, h2, h3 { font-family: 'Poppins', sans-serif; font-weight: 700; margin: 0; }
 
-  .nav-wrap { padding: 14px 16px 0; max-width: 900px; margin: 0 auto; }
-  .nav { display: flex; gap: 4px; background: #E9EBEF; border-radius: 14px; padding: 4px; overflow-x: auto; }
+  .nav-wrap { padding: 14px 16px 0; max-width: 900px; margin: 0 auto; display: flex; gap: 10px; align-items: center; }
+  .nav { display: flex; gap: 4px; background: #E9EBEF; border-radius: 14px; padding: 4px; overflow-x: auto; flex: 1; }
   .nav a { flex: 1; text-align: center; padding: 10px 12px; border-radius: 10px; font-size: 12.5px; font-weight: 600; color: var(--muted); text-decoration: none; white-space: nowrap; }
   .nav a.active { background: var(--navy); color: #fff; }
   .monitor .nav-wrap { max-width: 100%; padding: 12px 16px 0; }
-  .monitor .nav { background: #22242B; }
-  .monitor .nav a { color: #9CA0AC; }
+  .monitor .nav { background: var(--mon-nav-bg); }
+  .monitor .nav a { color: var(--mon-muted); }
   .monitor .nav a.active { background: var(--led-amber); color: var(--led); }
+  .theme-toggle { background: var(--mon-card); border: 1px solid var(--mon-border); color: var(--mon-text); border-radius: 10px; padding: 9px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 
   .wrap { max-width: 900px; margin: 0 auto; padding: 16px; }
   h1.page-title { font-size: 22px; margin: 6px 0 16px; }
@@ -76,9 +98,6 @@
   .bar b { color: var(--led-amber); }
   .hinweis-row { display: flex; align-items: center; gap: 8px; font-size: 13px; width: 100%; margin-top: 4px; }
   .hinweis-row input { flex: 1; }
-  .zahlungsart-row { display: flex; gap: 6px; }
-  .zahlungsart-btn { background: #26385A; border: 1px solid #3A4E73; color: #C9D2E3; border-radius: 9px; padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
-  .zahlungsart-btn.aktiv { background: var(--led-amber); border-color: var(--led-amber); color: var(--led); }
   .rueckgeld-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
   .rueckgeld-row input { width: 90px; }
 
@@ -102,39 +121,39 @@
   .stat-pill.warn { background: var(--rust-bg); color: var(--rust); }
 
   .modal-overlay { position: fixed; inset: 0; background: rgba(10,12,18,0.6); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
-  .modal-box { width: 85%; max-width: 520px; min-height: 55vh; background: #fff; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 32px; text-align: center; }
+  .modal-box { width: 85%; max-width: 520px; min-height: 55vh; background: var(--card); border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 32px; text-align: center; }
   .modal-box h2 { font-size: 21px; }
   .modal-box p { color: var(--muted); font-size: 14px; margin: 0; line-height: 1.5; }
   .modal-ok { background: var(--navy); color: #fff; border: none; border-radius: 12px; padding: 14px 40px; font-size: 16px; font-weight: 600; cursor: pointer; }
 
-  /* ---- Monitore (dunkel, LED-Stil) ---- */
-  .monitor { background: var(--led); min-height: 100vh; color: #EDEEF2; }
+  /* ---- Monitore (hell/dunkel umschaltbar) ---- */
+  .monitor { background: var(--mon-bg); min-height: 100vh; color: var(--mon-text); }
   .monitor .wrap { max-width: 1200px; }
   .mon-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
-  .mon-head h1 { color: #fff; font-size: 20px; }
+  .mon-head h1 { color: var(--mon-text); font-size: 20px; }
   .mon-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .hotkey-btn { background: #26282F; border: 1px solid #3A3D46; color: #C9CCD4; border-radius: 10px; padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .hotkey-btn { background: var(--mon-card); border: 1px solid var(--mon-border); color: var(--mon-muted); border-radius: 10px; padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
   .hotkey-btn.aktiv-warnung { background: var(--rust-bg); color: var(--rust); border-color: var(--rust); }
 
-  .led-box { background: #1D1F26; border: 1px solid #2E313B; border-radius: 10px; padding: 4px 12px; display: inline-flex; align-items: baseline; gap: 4px; font-family: 'Poppins', sans-serif; font-weight: 700; }
+  .led-box { background: var(--mon-card); border: 1px solid var(--mon-border); border-radius: 10px; padding: 4px 12px; display: inline-flex; align-items: baseline; gap: 4px; font-family: 'Poppins', sans-serif; font-weight: 700; }
   .led-amber { color: var(--led-amber); }
   .led-green { color: var(--led-green); }
-  .led-grey { color: var(--led-grey); }
+  .led-grey { color: var(--mon-muted); }
   .led-rust { color: var(--rust); }
 
   /* Ausgaben-Kacheln (Küche) */
   .ausgaben-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
   @media (max-width: 760px) { .ausgaben-grid { grid-template-columns: 1fr; } }
-  .ausgabe-tile { background: #1D1F26; border: 1px solid #2E313B; border-radius: 16px; padding: 18px; min-height: 220px; display: flex; flex-direction: column; gap: 10px; position: relative; }
+  .ausgabe-tile { background: var(--mon-card); border: 1px solid var(--mon-border); border-radius: 16px; padding: 18px; min-height: 220px; display: flex; flex-direction: column; gap: 10px; position: relative; }
   .ausgabe-tile.belegt { border-color: var(--led-amber); }
   .ausgabe-tile.frei { opacity: 0.6; align-items: center; justify-content: center; text-align: center; }
   .ausgabe-tile.geschlossen { opacity: 0.35; align-items: center; justify-content: center; text-align: center; }
   .ausgabe-tile-head { display: flex; justify-content: space-between; align-items: center; }
-  .ausgabe-tile-nr { font-size: 15px; color: #9CA0AC; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
-  .ausgabe-toggle { background: #2E313B; border: none; color: #C9CCD4; border-radius: 8px; padding: 5px 10px; font-size: 11px; cursor: pointer; font-weight: 600; }
+  .ausgabe-tile-nr { font-size: 15px; color: var(--mon-muted); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .ausgabe-toggle { background: var(--mon-border); border: none; color: var(--mon-muted); border-radius: 8px; padding: 5px 10px; font-size: 11px; cursor: pointer; font-weight: 600; }
   .ausgabe-toggle.on { background: var(--green); color: #fff; }
-  .ausgabe-tile-num { font-size: 34px; color: #fff; font-weight: 700; font-family: 'Poppins', sans-serif; }
-  .ausgabe-tile-time { font-size: 13px; color: var(--led-grey); }
+  .ausgabe-tile-num { font-size: 34px; color: var(--mon-text); font-weight: 700; font-family: 'Poppins', sans-serif; }
+  .ausgabe-tile-time { font-size: 13px; color: var(--mon-muted); }
   .ausgabe-tile-time.warn { color: var(--led-amber); }
   .ausgabe-tile-time.late { color: var(--rust); }
   .t-items { list-style: none; margin: 0; padding: 0; flex: 1; }
@@ -143,30 +162,31 @@
   .t-hinweis { color: var(--rust); font-size: 13px; font-weight: 600; margin: 4px 0 0; }
   .ready-btn { width: 100%; background: transparent; border: 1px solid var(--led-amber); color: var(--led-amber); border-radius: 9px; padding: 10px; font-size: 13px; cursor: pointer; font-weight: 600; }
   .ready-btn.sage { border-color: var(--led-green); color: var(--led-green); }
+  .ready-btn.klein { padding: 7px; font-size: 12px; }
 
   .queue-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
-  .queue-tile { flex: 0 0 180px; background: #1D1F26; border: 1px solid #2E313B; border-radius: 12px; padding: 12px; }
-  .queue-tile .q-nr { font-size: 18px; font-weight: 700; color: #fff; }
-  .queue-tile .q-time { font-size: 11px; color: var(--led-grey); }
-  .queue-tile ul { list-style: none; margin: 6px 0 0; padding: 0; font-size: 12px; color: #C9CCD4; }
+  .queue-tile { flex: 0 0 180px; background: var(--mon-card); border: 1px solid var(--mon-border); border-radius: 12px; padding: 12px; }
+  .queue-tile .q-nr { font-size: 18px; font-weight: 700; color: var(--mon-text); }
+  .queue-tile .q-time { font-size: 11px; color: var(--mon-muted); }
+  .queue-tile ul { list-style: none; margin: 6px 0 0; padding: 0; font-size: 12px; color: var(--mon-muted); }
 
-  .empty { text-align: center; color: var(--led-grey); padding: 60px 20px; }
+  .empty { text-align: center; color: var(--mon-muted); padding: 60px 20px; }
   .ausgabe-badge { display: inline-block; background: var(--led-amber); color: var(--led); font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 12px; margin-left: 6px; }
-  .ausgabe-wait { display: inline-block; background: #2E313B; color: var(--led-grey); font-size: 11px; padding: 2px 9px; border-radius: 12px; margin-left: 6px; }
+  .ausgabe-wait { display: inline-block; background: var(--mon-border); color: var(--mon-muted); font-size: 11px; padding: 2px 9px; border-radius: 12px; margin-left: 6px; }
 
   /* Ausgabemonitor: volle Breite, automatisch skalierend */
   .ausgabe-fullscreen { display: flex; flex-direction: column; gap: 0.7vh; padding: 0 1.2vw 1.2vh; }
   .ausgabe-tile-full {
-    background: #1D1F26; border: 1px solid #2E313B; border-radius: 16px;
+    background: var(--mon-card); border: 1px solid var(--mon-border); border-radius: 16px;
     display: flex; align-items: center; justify-content: space-between; padding: 0 3vw;
     transition: background 0.3s ease;
   }
-  .ausgabe-tile-full.gross { border-color: var(--led-amber); background: #24211A; }
+  .ausgabe-tile-full.gross { border-color: var(--led-amber); }
   .ausgabe-tile-full .links { display: flex; align-items: baseline; gap: 1.2vw; }
   .status-tag { display: inline-block; font-weight: 700; padding: 0.3em 0.9em; border-radius: 999px; }
-  .status-wartend { background: #2E313B; color: var(--led-grey); }
-  .status-inBearbeitung { background: #4A3416; color: var(--led-amber); }
-  .status-fertig { background: #16341F; color: var(--led-green); }
+  .status-wartend { background: var(--mon-border); color: var(--mon-muted); }
+  .status-inBearbeitung { background: var(--mon-border); color: var(--led-amber); }
+  .status-fertig { background: var(--mon-border); color: var(--led-green); }
 </style>
 </head>
 <body>
@@ -191,13 +211,13 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
     getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc,
-    onSnapshot, query, orderBy, serverTimestamp, runTransaction
+    onSnapshot, query, orderBy, serverTimestamp, runTransaction, increment
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const app = initializeApp(window.firebaseConfig);
   const db = getFirestore(app);
   window.__db = db;
-  window.__fs = { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot, query, orderBy, serverTimestamp, runTransaction };
+  window.__fs = { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot, query, orderBy, serverTimestamp, runTransaction, increment };
 
   window.dispatchEvent(new Event("firebase-ready"));
 </script>
@@ -211,6 +231,10 @@ const { useState, useEffect, useMemo, useRef } = React;
 // nicht vor absichtlichem Zugriff.
 const ADMIN_PASSWORT = "Kuckucksbaehnel2026";
 
+// Einfaches Passwort für den Zugriff auf den Kasse-Reiter (kein Konto, nur
+// ein gemeinsames Passwort fürs Kassenpersonal). Vor dem Einsatz anpassen.
+const KASSE_PASSWORT = "Kinderfest2026";
+
 const KATEGORIEN = [
   { id: "essen", label: "Essen" },
   { id: "alkoholfrei", label: "Alkoholfreie Getränke" },
@@ -219,10 +243,29 @@ const KATEGORIEN = [
 const katLabel = (id) => (KATEGORIEN.find((k) => k.id === id) || {}).label || id;
 
 const ANZAHL_AUSGABEN = 3;
-const EINSTELLUNGEN_STANDARD = { ausgabe1: true, ausgabe2: true, ausgabe3: true, essenBesetzt: true, getraenkeBesetzt: true };
+const EINSTELLUNGEN_STANDARD = { ausgabe1: true, ausgabe2: true, ausgabe3: true, essenBesetzt: true, getraenkeBesetzt: true, bestandsverwaltungAktiv: false };
 const SCHEINE = [500, 200, 100, 50, 20, 10, 5];
 const MUENZEN = [2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01];
 const formatStueckelung = (wert) => (wert >= 1 ? wert + " €" : Math.round(wert * 100) + " Ct");
+
+// Hell/Dunkel-Modus wird pro Gerät im Browser gespeichert (localStorage) —
+// jeder Bildschirm (Kasse, Essen-Monitor, Ausgabemonitor …) kann seine
+// eigene Einstellung behalten.
+function useTheme() {
+  const [dunkel, setDunkel] = useState(() => localStorage.getItem("kuechenmonitor-theme") === "dunkel");
+  useEffect(() => {
+    document.body.classList.toggle("dunkel", dunkel);
+    localStorage.setItem("kuechenmonitor-theme", dunkel ? "dunkel" : "hell");
+  }, [dunkel]);
+  return [dunkel, setDunkel];
+}
+function ThemeToggle({ dunkel, setDunkel }) {
+  return (
+    <button type="button" className="theme-toggle" onClick={() => setDunkel((v) => !v)} title="Hell/Dunkel umschalten">
+      {dunkel ? "☀️ Hell" : "🌙 Dunkel"}
+    </button>
+  );
+}
 
 function zeitKlasse(elapsedMs) {
   const mins = elapsedMs / 60000;
@@ -253,6 +296,34 @@ function orderStatusText(b) {
     teile.push(t);
   }
   return teile.join(" · ") || "offen";
+}
+
+// Gesamtstatus einer Bestellung: "Fertig" gilt nur, wenn ALLE enthaltenen
+// Bereiche (Essen UND Getränke, falls vorhanden) fertig sind — nicht schon,
+// wenn nur einer von beiden fertig ist.
+function gesamtStatus(b) {
+  if (b.storniert) return "storniert";
+  if (b.archiviert) return "abgeschlossen";
+  const essenOk = !b.hatEssen || b.essenStatus === "fertig";
+  const getraenkeOk = !b.hatGetraenke || b.getraenkeFertig;
+  if (essenOk && getraenkeOk) return "fertig";
+  if ((b.hatEssen && b.essenStatus === "fertig") || (b.hatGetraenke && b.getraenkeFertig)) return "teilweiseFertig";
+  return "offen";
+}
+function gesamtStatusLabel(s) {
+  return { fertig: "Fertig", teilweiseFertig: "Teilweise fertig", offen: "Offen", storniert: "Storniert", abgeschlossen: "Abgeschlossen" }[s] || s;
+}
+
+function formatUhrzeit(ms) {
+  if (!ms) return null;
+  return new Date(ms).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+function formatZeitstempel(b) {
+  const teile = ["Bestellt: " + (formatUhrzeit(b.erstelltAmMs) || "–")];
+  if (b.hatEssen) teile.push("Essen fertig: " + (formatUhrzeit(b.essenFertigZeitMs) || "–"));
+  if (b.hatGetraenke) teile.push("Getränke fertig: " + (formatUhrzeit(b.getraenkeFertigZeitMs) || "–"));
+  teile.push("Abgeschlossen: " + (formatUhrzeit(b.abschlussZeitMs) || "–"));
+  return teile.join(" · ");
 }
 
 function useFirebaseReady() {
@@ -389,6 +460,7 @@ function useAusgabenZuweisung(bestellungen, ready, einstellungen) {
 }
 
 function Nav({ current }) {
+  const [dunkel, setDunkel] = useTheme();
   const links = [
     ["kasse", "Kasse"],
     ["artikel", "Artikel"],
@@ -404,6 +476,7 @@ function Nav({ current }) {
           <a key={key} href={"#" + key} className={current === key ? "active" : ""}>{label}</a>
         ))}
       </div>
+      <ThemeToggle dunkel={dunkel} setDunkel={setDunkel} />
     </div>
   );
 }
@@ -424,9 +497,11 @@ function InfoModal({ title, message, onClose }) {
 function Artikelverwaltung() {
   const ready = useFirebaseReady();
   const artikel = useArtikel();
+  const einstellungen = useEinstellungen();
   const [name, setName] = useState("");
   const [preis, setPreis] = useState("");
   const [kategorie, setKategorie] = useState("essen");
+  const [startBestand, setStartBestand] = useState("");
   const [error, setError] = useState("");
   const [admin, setAdmin] = useState(false);
   const [pwInput, setPwInput] = useState("");
@@ -435,6 +510,7 @@ function Artikelverwaltung() {
   const [editName, setEditName] = useState("");
   const [editPreis, setEditPreis] = useState("");
   const [editKategorie, setEditKategorie] = useState("essen");
+  const [editBestand, setEditBestand] = useState("");
 
   const unlock = () => {
     if (pwInput === ADMIN_PASSWORT) { setAdmin(true); setPwError(""); setPwInput(""); }
@@ -447,8 +523,9 @@ function Artikelverwaltung() {
     const { collection, addDoc } = window.__fs;
     await addDoc(collection(window.__db, "artikel"), {
       name: name.trim(), preis: parseFloat(preis.replace(",", ".")), kategorie, ausverkauft: false,
+      bestand: startBestand ? parseInt(startBestand, 10) || 0 : 0,
     });
-    setName(""); setPreis("");
+    setName(""); setPreis(""); setStartBestand("");
   };
 
   const remove = async (id) => {
@@ -463,6 +540,7 @@ function Artikelverwaltung() {
 
   const startEdit = (a) => {
     setEditId(a.id); setEditName(a.name); setEditPreis(String(a.preis).replace(".", ",")); setEditKategorie(a.kategorie);
+    setEditBestand(String(a.bestand || 0));
   };
   const cancelEdit = () => setEditId(null);
   const saveEdit = async (id) => {
@@ -471,6 +549,7 @@ function Artikelverwaltung() {
     const { doc, updateDoc } = window.__fs;
     await updateDoc(doc(window.__db, "artikel", id), {
       name: editName.trim(), preis: parseFloat(editPreis.replace(",", ".")), kategorie: editKategorie,
+      bestand: parseInt(editBestand, 10) || 0,
     });
     setEditId(null);
   };
@@ -489,21 +568,33 @@ function Artikelverwaltung() {
       )}
 
       {admin && (
-        <div className="row-form">
-          <input placeholder="Artikelname" value={name} onChange={(e) => setName(e.target.value)} />
-          <input placeholder="Preis (z.B. 3,50)" value={preis} onChange={(e) => setPreis(e.target.value)} style={{ width: 120 }} />
-          <select value={kategorie} onChange={(e) => setKategorie(e.target.value)}>
-            {KATEGORIEN.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
-          </select>
-          <button className="btn" onClick={add}>Artikel hinzufügen</button>
-          <button className="del" onClick={() => setAdmin(false)} style={{ marginLeft: "auto" }}>Sperren</button>
-        </div>
+        <>
+          <div className="row-form">
+            <span style={{ fontSize: 13 }}>Bestandsverwaltung (Mengen je Artikel):</span>
+            <button className="btn small" style={einstellungen.bestandsverwaltungAktiv ? { background: "var(--green)" } : {}}
+              onClick={() => setEinstellung({ bestandsverwaltungAktiv: !einstellungen.bestandsverwaltungAktiv })}>
+              {einstellungen.bestandsverwaltungAktiv ? "Aktiv" : "Inaktiv"}
+            </button>
+          </div>
+          <div className="row-form">
+            <input placeholder="Artikelname" value={name} onChange={(e) => setName(e.target.value)} />
+            <input placeholder="Preis (z.B. 3,50)" value={preis} onChange={(e) => setPreis(e.target.value)} style={{ width: 120 }} />
+            <select value={kategorie} onChange={(e) => setKategorie(e.target.value)}>
+              {KATEGORIEN.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
+            </select>
+            {einstellungen.bestandsverwaltungAktiv && (
+              <input placeholder="Startbestand" value={startBestand} onChange={(e) => setStartBestand(e.target.value)} style={{ width: 110 }} />
+            )}
+            <button className="btn" onClick={add}>Artikel hinzufügen</button>
+            <button className="del" onClick={() => setAdmin(false)} style={{ marginLeft: "auto" }}>Sperren</button>
+          </div>
+        </>
       )}
 
       {error && <p style={{ color: "var(--rust)", fontSize: 13 }}>{error}</p>}
       {!ready && <p>Verbinde mit Firebase…</p>}
       <table>
-        <thead><tr><th>Name</th><th>Kategorie</th><th>Preis</th><th>Verfügbar</th>{admin && <th></th>}</tr></thead>
+        <thead><tr><th>Name</th><th>Kategorie</th><th>Preis</th>{einstellungen.bestandsverwaltungAktiv && <th>Bestand</th>}<th>Verfügbar</th>{admin && <th></th>}</tr></thead>
         <tbody>
           {artikel.map((a) => (
             editId === a.id ? (
@@ -515,6 +606,9 @@ function Artikelverwaltung() {
                   </select>
                 </td>
                 <td><input value={editPreis} onChange={(e) => setEditPreis(e.target.value)} style={{ width: 80 }} /></td>
+                {einstellungen.bestandsverwaltungAktiv && (
+                  <td><input value={editBestand} onChange={(e) => setEditBestand(e.target.value)} style={{ width: 70 }} /></td>
+                )}
                 <td></td>
                 <td>
                   <button className="edit-link" onClick={() => saveEdit(a.id)}>Speichern</button>
@@ -526,6 +620,7 @@ function Artikelverwaltung() {
                 <td>{a.name}</td>
                 <td>{katLabel(a.kategorie)}</td>
                 <td>{a.preis.toFixed(2)} €</td>
+                {einstellungen.bestandsverwaltungAktiv && <td>{a.bestand || 0}</td>}
                 <td>
                   {admin ? (
                     <button className="btn small" style={a.ausverkauft ? { background: "var(--rust)" } : { background: "var(--green)" }} onClick={() => toggleAusverkauft(a)}>
@@ -543,7 +638,7 @@ function Artikelverwaltung() {
             )
           ))}
           {artikel.length === 0 && ready && (
-            <tr><td colSpan={admin ? 5 : 4} style={{ color: "var(--muted)" }}>Noch keine Artikel angelegt.</td></tr>
+            <tr><td colSpan={admin ? 6 : 4} style={{ color: "var(--muted)" }}>Noch keine Artikel angelegt.</td></tr>
           )}
         </tbody>
       </table>
@@ -610,15 +705,10 @@ function Kassenbuch() {
   );
 
   const barBestellungen = useMemo(
-    () => bestellungen.filter((b) => !b.storniert && (b.zahlungsart || "bar") === "bar" && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
-    [bestellungen, zurueckgesetztAm]
-  );
-  const kartenBestellungen = useMemo(
-    () => bestellungen.filter((b) => !b.storniert && b.zahlungsart === "karte" && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
+    () => bestellungen.filter((b) => !b.storniert && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
     [bestellungen, zurueckgesetztAm]
   );
   const bareinnahmen = barBestellungen.reduce((s, b) => s + b.gesamtpreis, 0);
-  const karteneinnahmen = kartenBestellungen.reduce((s, b) => s + b.gesamtpreis, 0);
 
   const manuelleSumme = eintraege.filter((e) => e.art !== "nachbestand").reduce((sum, e) => {
     if (e.art === "auszahlung") return sum - e.betrag;
@@ -751,6 +841,9 @@ function Kasse() {
   const artikel = useArtikel();
   const { bestellungen } = useBestellungen();
   const einstellungen = useEinstellungen();
+  const [entsperrt, setEntsperrt] = useState(false);
+  const [kassePwInput, setKassePwInput] = useState("");
+  const [kassePwError, setKassePwError] = useState("");
   const [cart, setCart] = useState({});
   const [gegeben, setGegeben] = useState("");
   const [zahlungsart, setZahlungsart] = useState("bar");
@@ -780,8 +873,10 @@ function Kasse() {
     return () => clearTimeout(t);
   }, [lastNummer]);
 
+  const istAusverkauft = (a) => a.ausverkauft || (einstellungen.bestandsverwaltungAktiv && (a.bestand || 0) <= 0);
+
   const changeQty = (a, delta) => {
-    if (a.ausverkauft) return;
+    if (istAusverkauft(a)) return;
     setCart((prev) => {
       const next = { ...prev };
       const val = (next[a.id] || 0) + delta;
@@ -800,6 +895,14 @@ function Kasse() {
 
   const resetForm = () => { setCart({}); setGegeben(""); setZahlungsart("bar"); setHinweis(""); setEditingId(null); };
 
+  const bestandAnpassen = async (items, richtung) => {
+    if (!einstellungen.bestandsverwaltungAktiv) return;
+    const { doc, updateDoc, increment } = window.__fs;
+    await Promise.all(items.map((i) =>
+      updateDoc(doc(window.__db, "artikel", i.artikelId), { bestand: increment(richtung * i.menge) }).catch(() => {})
+    ));
+  };
+
   const submit = async () => {
     if (totalItems === 0 || submitting) return;
     setSubmitting(true);
@@ -812,18 +915,27 @@ function Kasse() {
       });
       const hatEssen = items.some((i) => i.kategorie === "essen");
       const hatGetraenke = items.some((i) => i.kategorie === "alkoholfrei" || i.kategorie === "alkoholisch");
+      // Reine Getränkebestellungen (kein Essen dabei) werden direkt am
+      // Getränkestand ausgehändigt — keine Warteschlange, kein Monitor nötig.
+      const sofortFertig = !hatEssen;
 
       if (editingId) {
         const bestehend = bestellungen.find((b) => b.id === editingId);
         let essenStatus = bestehend.essenStatus;
         let ausgabeNummer = bestehend.ausgabeNummer;
-        if (!hatEssen) { essenStatus = "kein"; ausgabeNummer = null; }
-        else if (essenStatus === "kein") { essenStatus = "wartend"; ausgabeNummer = null; }
+        let archiviert = bestehend.archiviert;
+        if (!hatEssen) { essenStatus = "kein"; ausgabeNummer = null; archiviert = true; }
+        else if (essenStatus === "kein") { essenStatus = "wartend"; ausgabeNummer = null; archiviert = false; }
         else if (essenStatus === "fertig") { essenStatus = ausgabeNummer ? "inBearbeitung" : "wartend"; }
+        await bestandAnpassen(bestehend.items, 1);
+        await bestandAnpassen(items, -1);
         await updateDoc(doc(window.__db, "bestellungen", editingId), {
           items, gesamtpreis: totalCost, hatEssen, hatGetraenke,
-          getraenkeFertig: hatGetraenke ? false : true,
-          essenStatus, ausgabeNummer, hinweis: hinweis.trim(), zahlungsart,
+          getraenkeFertig: hatGetraenke ? sofortFertig : true,
+          getraenkeFertigZeitMs: sofortFertig ? Date.now() : (hatGetraenke ? null : bestehend.getraenkeFertigZeitMs || null),
+          essenStatus, ausgabeNummer, archiviert,
+          abschlussZeitMs: archiviert ? Date.now() : null,
+          hinweis: hinweis.trim(), zahlungsart,
         });
         setLastNummer(bestehend.nummer);
       } else {
@@ -834,11 +946,16 @@ function Kasse() {
           rueckgeld: zahlungsart === "bar" ? rueckgeld : null,
           zahlungsart,
           hinweis: hinweis.trim(), hatEssen, hatGetraenke,
-          getraenkeFertig: !hatGetraenke,
+          getraenkeFertig: hatGetraenke ? sofortFertig : true,
+          getraenkeFertigZeitMs: sofortFertig ? Date.now() : null,
           essenStatus: hatEssen ? "wartend" : "kein",
-          ausgabeNummer: null, storniert: false, archiviert: false,
+          essenFertigZeitMs: null,
+          ausgabeNummer: null,
+          storniert: false, archiviert: sofortFertig,
+          abschlussZeitMs: sofortFertig ? Date.now() : null,
           erstelltAm: serverTimestamp(), erstelltAmMs: Date.now(),
         });
+        await bestandAnpassen(items, -1);
         setLastNummer(nummer);
       }
       resetForm();
@@ -863,11 +980,13 @@ function Kasse() {
   const stornieren = async (b) => {
     const { doc, updateDoc } = window.__fs;
     await updateDoc(doc(window.__db, "bestellungen", b.id), { storniert: true });
+    await bestandAnpassen(b.items, 1);
     setStornoNummer(b.nummer);
     if (editingId === b.id) resetForm();
   };
 
   const aktive = bestellungen.filter(istAktiv).sort((a, b) => (b.erstelltAmMs || 0) - (a.erstelltAmMs || 0));
+  const chronik = bestellungen.slice().sort((a, b) => (b.erstelltAmMs || 0) - (a.erstelltAmMs || 0)).slice(0, 15);
 
   const suchen = () => {
     const n = parseInt(suchNummer, 10);
@@ -896,13 +1015,18 @@ function Kasse() {
         ) : (
           <div className="grid">
             {items.map((a) => (
-              <div className={"card" + (a.ausverkauft ? " ausverkauft" : "")} key={a.id}>
+              <div className={"card" + (istAusverkauft(a) ? " ausverkauft" : "")} key={a.id}>
                 <div>{a.name}</div>
-                {a.ausverkauft ? <div className="ausverkauft-tag">Ausverkauft</div> : <div className="price">{a.preis.toFixed(2)} €</div>}
+                {istAusverkauft(a) ? <div className="ausverkauft-tag">Ausverkauft</div> : (
+                  <>
+                    <div className="price">{a.preis.toFixed(2)} €</div>
+                    {einstellungen.bestandsverwaltungAktiv && <div className="price">Noch {a.bestand || 0}</div>}
+                  </>
+                )}
                 <div className="stepper">
-                  <button onClick={() => changeQty(a, -1)} disabled={!cart[a.id] || a.ausverkauft}>-</button>
+                  <button onClick={() => changeQty(a, -1)} disabled={!cart[a.id] || istAusverkauft(a)}>-</button>
                   <span className="qty">{cart[a.id] || 0}</span>
-                  <button onClick={() => changeQty(a, 1)} disabled={a.ausverkauft}>+</button>
+                  <button onClick={() => changeQty(a, 1)} disabled={istAusverkauft(a)}>+</button>
                 </div>
               </div>
             ))}
@@ -911,6 +1035,23 @@ function Kasse() {
       </div>
     );
   };
+
+  if (!entsperrt) {
+    return (
+      <div className="wrap">
+        <h1 className="page-title">Kasse gesperrt</h1>
+        <p style={{ color: "var(--muted)", fontSize: 13 }}>Bitte Passwort eingeben, um auf die Kasse zuzugreifen.</p>
+        <div className="row-form">
+          <input type="password" placeholder="Passwort" value={kassePwInput}
+            onChange={(e) => setKassePwInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && (kassePwInput === KASSE_PASSWORT ? setEntsperrt(true) : setKassePwError("Falsches Passwort."))}
+            style={{ width: 180 }} />
+          <button className="btn" onClick={() => (kassePwInput === KASSE_PASSWORT ? setEntsperrt(true) : setKassePwError("Falsches Passwort."))}>Entsperren</button>
+          {kassePwError && <span style={{ color: "var(--rust)", fontSize: 13 }}>{kassePwError}</span>}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="wrap">
@@ -968,7 +1109,7 @@ function Kasse() {
       {aktive.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>Keine offenen Bestellungen.</p>}
       {aktive.map((b) => (
         <div className="order-row" key={b.id}>
-          <span><b>Nr. {b.nummer}</b> — {b.gesamtpreis.toFixed(2)} € <span className="meta">· {orderStatusText(b)}</span></span>
+          <span><b>Nr. {b.nummer}</b> — {b.gesamtpreis.toFixed(2)} € <span className="meta">· {orderStatusText(b)} · Gesamt: {gesamtStatusLabel(gesamtStatus(b))}</span></span>
           <span className="order-actions">
             <button className="edit-link" onClick={() => startEditOrder(b)}>Bearbeiten</button>
             <button className="del" onClick={() => stornieren(b)}>Stornieren</button>
@@ -985,8 +1126,9 @@ function Kasse() {
       {suchTreffer && (
         <div className="order-row">
           <span>
-            <b>Nr. {suchTreffer.nummer}</b> — {suchTreffer.gesamtpreis.toFixed(2)} € <span className="meta">· {orderStatusText(suchTreffer)}</span>
+            <b>Nr. {suchTreffer.nummer}</b> — {suchTreffer.gesamtpreis.toFixed(2)} € <span className="meta">· {orderStatusText(suchTreffer)} · Gesamt: {gesamtStatusLabel(gesamtStatus(suchTreffer))}</span>
             <br /><span className="meta">{suchTreffer.items.map((i) => i.menge + "× " + i.name).join(", ")}</span>
+            <br /><span className="meta">{formatZeitstempel(suchTreffer)}</span>
           </span>
           {istAktiv(suchTreffer) && (
             <span className="order-actions">
@@ -996,6 +1138,18 @@ function Kasse() {
           )}
         </div>
       )}
+
+      <h2 className="section-title">Chronik</h2>
+      <p style={{ color: "var(--muted)", fontSize: 13, marginTop: -4 }}>Die letzten Bestellungen, unabhängig vom Status.</p>
+      {chronik.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>Noch keine Bestellungen.</p>}
+      {chronik.map((b) => (
+        <div className="order-row" key={b.id}>
+          <span>
+            <b>Nr. {b.nummer}</b> — {b.gesamtpreis.toFixed(2)} € <span className="meta">· {orderStatusText(b)}</span>
+            <br /><span className="meta">{b.items.map((i) => i.menge + "× " + i.name).join(", ")}</span>
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1023,7 +1177,8 @@ function MonitorGetraenke() {
   const markFertig = async (b) => {
     const { doc, updateDoc } = window.__fs;
     await updateDoc(doc(window.__db, "bestellungen", b.id), {
-      getraenkeFertig: true, ...(!b.hatEssen ? { archiviert: true } : {}),
+      getraenkeFertig: true, getraenkeFertigZeitMs: Date.now(),
+      ...(!b.hatEssen ? { archiviert: true, abschlussZeitMs: Date.now() } : {}),
     });
   };
 
@@ -1091,11 +1246,21 @@ function MonitorEssen() {
 
   const markFertig = async (b) => {
     const { doc, updateDoc } = window.__fs;
-    await updateDoc(doc(window.__db, "bestellungen", b.id), { essenStatus: "fertig" });
+    await updateDoc(doc(window.__db, "bestellungen", b.id), { essenStatus: "fertig", essenFertigZeitMs: Date.now() });
   };
   const markAbgeholt = async (b) => {
     const { doc, updateDoc } = window.__fs;
-    await updateDoc(doc(window.__db, "bestellungen", b.id), { archiviert: true });
+    await updateDoc(doc(window.__db, "bestellungen", b.id), { archiviert: true, abschlussZeitMs: Date.now() });
+  };
+  // Für Bestellungen, die noch "wartend" sind (keiner Ausgabe zugeteilt),
+  // aber schon fertig zubereitet wurden — z.B. wenn das Grillteam mit
+  // Bratwürsten schneller ist als mit den zugeteilten Steaks.
+  const markFertigUndAbgeholt = async (b) => {
+    const { doc, updateDoc } = window.__fs;
+    const jetzt = Date.now();
+    await updateDoc(doc(window.__db, "bestellungen", b.id), {
+      essenStatus: "fertig", essenFertigZeitMs: jetzt, archiviert: true, abschlussZeitMs: jetzt,
+    });
   };
 
   const toggleAusgabe = async (n) => {
@@ -1146,7 +1311,7 @@ function MonitorEssen() {
                 </div>
               );
             }
-            const elapsed = now - (order.erstelltAmMs || Date.now());
+            const elapsed = now - ((order.essenStatus === "fertig" && order.essenFertigZeitMs) ? order.essenFertigZeitMs : (order.erstelltAmMs || Date.now()));
             const cls = zeitKlasse(elapsed);
             return (
               <div className="ausgabe-tile belegt" key={n}>
@@ -1165,7 +1330,10 @@ function MonitorEssen() {
                 </ul>
                 {order.hinweis && <p className="t-hinweis">{order.hinweis}</p>}
                 {order.essenStatus === "inBearbeitung" && (
-                  <button className="ready-btn" onClick={() => markFertig(order)}>Als fertig markieren</button>
+                  <>
+                    <button className="ready-btn" onClick={() => markFertig(order)}>Als fertig markieren</button>
+                    <button className="ready-btn sage" onClick={() => markFertigUndAbgeholt(order)}>Fertig &amp; abgeholt</button>
+                  </>
                 )}
                 {order.essenStatus === "fertig" && (
                   <button className="ready-btn sage" onClick={() => markAbgeholt(order)}>Abgeholt</button>
@@ -1177,7 +1345,7 @@ function MonitorEssen() {
 
         {wartendeListe.length > 0 && (
           <>
-            <h2 style={{ fontSize: 14, color: "#9CA0AC", margin: "4px 0 10px" }}>Warteschlange ({wartendeListe.length})</h2>
+            <h2 style={{ fontSize: 14, color: "var(--mon-muted)", margin: "4px 0 10px" }}>Warteschlange ({wartendeListe.length})</h2>
             <div className="queue-row">
               {wartendeListe.map((b) => {
                 const elapsed = now - (b.erstelltAmMs || Date.now());
@@ -1191,6 +1359,7 @@ function MonitorEssen() {
                       ))}
                     </ul>
                     {b.hinweis && <p className="t-hinweis" style={{ fontSize: 11 }}>{b.hinweis}</p>}
+                    <button className="ready-btn sage klein" onClick={() => markFertigUndAbgeholt(b)}>Fertig &amp; abgeholt</button>
                   </div>
                 );
               })}
