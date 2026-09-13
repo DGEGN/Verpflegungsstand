@@ -267,6 +267,28 @@ function ThemeToggle({ dunkel, setDunkel }) {
   );
 }
 
+function useFullscreen() {
+  const [voll, setVoll] = useState(!!document.fullscreenElement);
+  useEffect(() => {
+    const onChange = () => setVoll(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+  const umschalten = () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  };
+  return [voll, umschalten];
+}
+function FullscreenToggle() {
+  const [voll, umschalten] = useFullscreen();
+  return (
+    <button type="button" className="theme-toggle" onClick={umschalten} title="Vollbild umschalten">
+      {voll ? "⤢ Vollbild verlassen" : "⛶ Vollbild"}
+    </button>
+  );
+}
+
 function zeitKlasse(elapsedMs) {
   const mins = elapsedMs / 60000;
   if (mins >= 7) return "late";
@@ -691,6 +713,9 @@ function Kassenbuch() {
   const alleEintraege = useKassenbuchEintraege();
   const zurueckgesetztAm = useKassenbuchEinstellung();
   const { bestellungen } = useBestellungen();
+  const [entsperrt, setEntsperrt] = useState(false);
+  const [kassePwInput, setKassePwInput] = useState("");
+  const [kassePwError, setKassePwError] = useState("");
   const [art, setArt] = useState("einzahlung");
   const [betrag, setBetrag] = useState("");
   const [notiz, setNotiz] = useState("");
@@ -705,10 +730,15 @@ function Kassenbuch() {
   );
 
   const barBestellungen = useMemo(
-    () => bestellungen.filter((b) => !b.storniert && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
+    () => bestellungen.filter((b) => !b.storniert && (b.zahlungsart || "bar") === "bar" && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
+    [bestellungen, zurueckgesetztAm]
+  );
+  const kartenBestellungen = useMemo(
+    () => bestellungen.filter((b) => !b.storniert && b.zahlungsart === "karte" && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
     [bestellungen, zurueckgesetztAm]
   );
   const bareinnahmen = barBestellungen.reduce((s, b) => s + b.gesamtpreis, 0);
+  const karteneinnahmen = kartenBestellungen.reduce((s, b) => s + b.gesamtpreis, 0);
 
   const manuelleSumme = eintraege.filter((e) => e.art !== "nachbestand").reduce((sum, e) => {
     if (e.art === "auszahlung") return sum - e.betrag;
@@ -743,9 +773,29 @@ function Kassenbuch() {
     await setDoc(doc(window.__db, "einstellungen", "kassenbuch"), { zurueckgesetztAm: Date.now() }, { merge: true });
   };
 
+  if (!entsperrt) {
+    return (
+      <div className="wrap">
+        <h1 className="page-title">Kassenbuch gesperrt</h1>
+        <p style={{ color: "var(--muted)", fontSize: 13 }}>Bitte Passwort eingeben, um auf das Kassenbuch zuzugreifen.</p>
+        <div className="row-form">
+          <input type="password" placeholder="Passwort" value={kassePwInput}
+            onChange={(e) => setKassePwInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && (kassePwInput === KASSE_PASSWORT ? setEntsperrt(true) : setKassePwError("Falsches Passwort."))}
+            style={{ width: 180 }} />
+          <button className="btn" onClick={() => (kassePwInput === KASSE_PASSWORT ? setEntsperrt(true) : setKassePwError("Falsches Passwort."))}>Entsperren</button>
+          {kassePwError && <span style={{ color: "var(--rust)", fontSize: 13 }}>{kassePwError}</span>}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="wrap">
-      <h1 className="page-title">Kassenbuch</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h1 className="page-title" style={{ margin: 0 }}>Kassenbuch</h1>
+        <FullscreenToggle />
+      </div>
       {!ready && <p>Verbinde mit Firebase…</p>}
 
       <div className="card" style={{ marginBottom: 20, textAlign: "center", padding: 22 }}>
