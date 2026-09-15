@@ -146,8 +146,13 @@
   @media (max-width: 760px) { .ausgaben-grid { grid-template-columns: 1fr; } }
   .ausgabe-tile { background: var(--mon-card); border: 1px solid var(--mon-border); border-radius: 16px; padding: 18px; min-height: 220px; display: flex; flex-direction: column; gap: 10px; position: relative; }
   .ausgabe-tile.belegt { border-color: var(--led-amber); }
+  .ausgabe-tile.warn { border-color: var(--led-amber); background: color-mix(in srgb, var(--led-amber) 14%, var(--mon-card)); }
+  .ausgabe-tile.late { border-color: var(--rust); background: color-mix(in srgb, var(--rust) 16%, var(--mon-card)); }
+  .ausgabe-tile.fertig-gruen { border-color: var(--led-green); background: color-mix(in srgb, var(--led-green) 14%, var(--mon-card)); }
   .ausgabe-tile.frei { opacity: 0.6; align-items: center; justify-content: center; text-align: center; }
   .ausgabe-tile.geschlossen { opacity: 0.35; align-items: center; justify-content: center; text-align: center; }
+  .banner-stack { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 60; align-items: center; }
+  .update-banner { background: var(--rust); color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
   .ausgabe-tile-head { display: flex; justify-content: space-between; align-items: center; }
   .ausgabe-tile-nr { font-size: 15px; color: var(--mon-muted); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
   .ausgabe-toggle { background: var(--mon-border); border: none; color: var(--mon-muted); border-radius: 8px; padding: 5px 10px; font-size: 11px; cursor: pointer; font-weight: 600; }
@@ -159,7 +164,7 @@
   .t-items { list-style: none; margin: 0; padding: 0; flex: 1; }
   .t-items li { font-size: 15px; margin-bottom: 4px; }
   .t-items b { color: var(--led-amber); margin-right: 6px; }
-  .t-hinweis { color: var(--rust); font-size: 13px; font-weight: 600; margin: 4px 0 0; }
+  .t-hinweis { color: var(--rust); font-size: 14px; font-weight: 700; margin: 4px 0 0; }
   .ready-btn { width: 100%; background: transparent; border: 1px solid var(--led-amber); color: var(--led-amber); border-radius: 9px; padding: 10px; font-size: 13px; cursor: pointer; font-weight: 600; }
   .ready-btn.sage { border-color: var(--led-green); color: var(--led-green); }
   .ready-btn.klein { padding: 7px; font-size: 12px; }
@@ -181,7 +186,8 @@
     display: flex; align-items: center; justify-content: space-between; padding: 0 3vw;
     transition: background 0.3s ease;
   }
-  .ausgabe-tile-full.gross { border-color: var(--led-amber); }
+  .ausgabe-tile-full.gross { font-weight: 700; }
+  .ausgabe-tile-full.fertig-gruen { border-color: var(--led-green); background: color-mix(in srgb, var(--led-green) 12%, var(--mon-card)); }
   .ausgabe-tile-full .links { display: flex; align-items: baseline; gap: 1.2vw; }
   .status-tag { display: inline-block; font-weight: 700; padding: 0.3em 0.9em; border-radius: 999px; }
   .status-wartend { background: var(--mon-border); color: var(--mon-muted); }
@@ -199,7 +205,7 @@
 <script type="module">
   // Firebase-Konfiguration: eigene Projektdaten aus der Firebase-Konsole eintragen
   // (Project Settings -> General -> "Your apps" -> SDK setup and configuration)
-  window.firebaseConfig = {
+ window.firebaseConfig = {
     apiKey: "AIzaSyA6gB4xskgydH3v6TtmvKpNgjlaSio_8IM",
   authDomain: "verpflegungsstand.firebaseapp.com",
   projectId: "verpflegungsstand",
@@ -239,6 +245,7 @@ const KATEGORIEN = [
   { id: "essen", label: "Essen" },
   { id: "alkoholfrei", label: "Alkoholfreie Getränke" },
   { id: "alkoholisch", label: "Alkoholisches" },
+  { id: "pfand", label: "Pfand" },
 ];
 const katLabel = (id) => (KATEGORIEN.find((k) => k.id === id) || {}).label || id;
 
@@ -453,10 +460,105 @@ async function naechsteBestellnummer() {
   });
 }
 
-// Weist wartenden Essens-Bestellungen automatisch eine freie, geöffnete Ausgabe
-// (1-3) zu, sobald eine frei wird. Läuft im Essen-Monitor und Ausgabemonitor.
-function useAusgabenZuweisung(bestellungen, ready, einstellungen) {
+function useVerkaufstag() {
+  const ready = useFirebaseReady();
+  const [tag, setTag] = useState({ tagStartMs: 0, tagLabel: "" });
   useEffect(() => {
+    if (!ready) return;
+    const { doc, onSnapshot } = window.__fs;
+    const ref = doc(window.__db, "einstellungen", "verkaufstag");
+    const unsub = onSnapshot(ref, (snap) => {
+      if (snap.exists()) setTag(snap.data());
+    });
+    return unsub;
+  }, [ready]);
+  return tag;
+}
+
+function heutigesLabel() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function startHeuteMs() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+// Läuft dauerhaft im Hintergrund (App-Komponente): sobald der Kalendertag
+// wechselt (Nachtsprung 00 Uhr), werden Bestellnummer und Chronik-Zähltag
+// automatisch zurückgesetzt — auch ohne manuellen Kassenschnitt. Der
+// Kassenbuch-Bestand bleibt davon unberührt (der wird nur per Kassenschnitt
+// oder manuellem Zurücksetzen abgeschlossen).
+function useMitternachtsReset(ready) {
+  useEffect(() => {
+    if (!ready) return;
+    let letztesLabel = null;
+    const { doc, onSnapshot, setDoc } = window.__fs;
+    const ref = doc(window.__db, "einstellungen", "verkaufstag");
+    const unsub = onSnapshot(ref, (snap) => {
+      letztesLabel = snap.exists() ? snap.data().tagLabel : null;
+    });
+    const intervall = setInterval(async () => {
+      const heute = heutigesLabel();
+      if (letztesLabel && letztesLabel === heute) return;
+      if (letztesLabel === null) return; // noch nicht geladen
+      // Tageswechsel erkannt: Bestellnummer + Chronik-Tag zurücksetzen
+      await setDoc(doc(window.__db, "einstellungen", "verkaufstag"), { tagStartMs: startHeuteMs(), tagLabel: heute }, { merge: true });
+      await setDoc(doc(window.__db, "einstellungen", "zaehler"), { naechsteNummer: 1 }, { merge: true });
+    }, 60000);
+    // beim ersten Laden: falls noch gar kein Verkaufstag existiert, anlegen
+    (async () => {
+      await new Promise((r) => setTimeout(r, 1500));
+      if (letztesLabel === null) {
+        await setDoc(doc(window.__db, "einstellungen", "verkaufstag"), { tagStartMs: startHeuteMs(), tagLabel: heutigesLabel() }, { merge: true });
+      }
+    })();
+    return () => { clearInterval(intervall); unsub(); };
+  }, [ready]);
+}
+
+// Kassenschnitt: schließt den aktuellen Verkaufszeitraum ab, speichert eine
+// Zusammenfassung zur Nachvollziehbarkeit und setzt Kassenbuch, Chronik und
+// Bestellnummer neu — wie der Tagesabschluss an einem EC-Gerät.
+async function kassenschnittDurchfuehren(bestellungen, kassenbuchBestand, zurueckgesetztAm) {
+  const { collection, doc, addDoc, setDoc } = window.__fs;
+  const relevant = bestellungen.filter((b) => !b.storniert && (b.erstelltAmMs || 0) >= zurueckgesetztAm && !b.personalverpflegung);
+  const bar = relevant.filter((b) => (b.zahlungsart || "bar") === "bar");
+  const karte = relevant.filter((b) => b.zahlungsart === "karte");
+  const proKategorie = {};
+  relevant.forEach((b) => b.items.forEach((i) => {
+    proKategorie[i.kategorie] = (proKategorie[i.kategorie] || 0) + i.preis * i.menge;
+  }));
+  const jetzt = Date.now();
+  await addDoc(collection(window.__db, "kassenschnitte"), {
+    erstelltAmMs: jetzt,
+    zeitraumVonMs: zurueckgesetztAm,
+    zeitraumBisMs: jetzt,
+    anzahlBestellungen: relevant.length,
+    anzahlStorniert: bestellungen.filter((b) => b.storniert && (b.erstelltAmMs || 0) >= zurueckgesetztAm).length,
+    bareinnahmen: bar.reduce((s, b) => s + b.gesamtpreis, 0),
+    karteneinnahmen: karte.reduce((s, b) => s + b.gesamtpreis, 0),
+    proKategorie,
+    kassenbuchBestand,
+  });
+  await setDoc(doc(window.__db, "einstellungen", "kassenbuch"), { zurueckgesetztAm: jetzt }, { merge: true });
+  await setDoc(doc(window.__db, "einstellungen", "verkaufstag"), { tagStartMs: jetzt, tagLabel: heutigesLabel() }, { merge: true });
+  await setDoc(doc(window.__db, "einstellungen", "zaehler"), { naechsteNummer: 1 }, { merge: true });
+}
+
+function useKassenschnitte() {
+  const ready = useFirebaseReady();
+  const [liste, setListe] = useState([]);
+  useEffect(() => {
+    if (!ready) return;
+    const { collection, onSnapshot, query, orderBy } = window.__fs;
+    const q = query(collection(window.__db, "kassenschnitte"), orderBy("erstelltAmMs", "desc"));
+    const unsub = onSnapshot(q, (snap) => setListe(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+    return unsub;
+  }, [ready]);
+  return liste;
+}
     if (!ready || !einstellungen.essenBesetzt) return;
     const offeneNummern = [1, 2, 3].filter((n) => einstellungen["ausgabe" + n]);
     if (offeneNummern.length === 0) return;
@@ -730,11 +832,15 @@ function Kassenbuch() {
   );
 
   const barBestellungen = useMemo(
-    () => bestellungen.filter((b) => !b.storniert && (b.zahlungsart || "bar") === "bar" && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
+    () => bestellungen.filter((b) => !b.storniert && !b.personalverpflegung && (b.zahlungsart || "bar") === "bar" && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
     [bestellungen, zurueckgesetztAm]
   );
   const kartenBestellungen = useMemo(
-    () => bestellungen.filter((b) => !b.storniert && b.zahlungsart === "karte" && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
+    () => bestellungen.filter((b) => !b.storniert && !b.personalverpflegung && b.zahlungsart === "karte" && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
+    [bestellungen, zurueckgesetztAm]
+  );
+  const personalBestellungen = useMemo(
+    () => bestellungen.filter((b) => !b.storniert && b.personalverpflegung && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
     [bestellungen, zurueckgesetztAm]
   );
   const bareinnahmen = barBestellungen.reduce((s, b) => s + b.gesamtpreis, 0);
@@ -765,6 +871,20 @@ function Kassenbuch() {
     setError("");
     await neuerEintrag(art, zahl, notiz.trim());
     setBetrag(""); setNotiz("");
+  };
+
+  const kassenschnitte = useKassenschnitte();
+  const [schnittLaeuft, setSchnittLaeuft] = useState(false);
+  const [zeigeHistorie, setZeigeHistorie] = useState(false);
+
+  const kassenschnitt = async () => {
+    if (!window.confirm("Kassenschnitt durchführen? Der bisherige Verkaufszeitraum wird als Bericht gespeichert und abgeschlossen. Kassenbuch, Chronik und Bestellnummern beginnen danach neu bei 0 bzw. 1.")) return;
+    setSchnittLaeuft(true);
+    try {
+      await kassenschnittDurchfuehren(bestellungen, bestand, zurueckgesetztAm);
+    } finally {
+      setSchnittLaeuft(false);
+    }
   };
 
   const neuerTag = async () => {
@@ -816,6 +936,11 @@ function Kassenbuch() {
         <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
           Kartenzahlungen aus {kartenBestellungen.length} Bestellungen: <b>{karteneinnahmen.toFixed(2)} €</b> (nicht im Bargeldbestand enthalten)
         </div>
+        {personalBestellungen.length > 0 && (
+          <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
+            Personalverpflegung: {personalBestellungen.length} Bestellungen (0 € Umsatz, nicht im Bestand enthalten)
+          </div>
+        )}
         {zeigeBarListe && (
           <div style={{ marginTop: 10, maxHeight: 220, overflowY: "auto" }}>
             {barBestellungen.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>Keine Bar-Bestellungen seit dem letzten Zurücksetzen.</p>}
@@ -877,9 +1002,32 @@ function Kassenbuch() {
         </div>
       ))}
 
-      <h2 className="section-title">Neuer Tag</h2>
+      <h2 className="section-title">Kassenschnitt</h2>
       <p style={{ color: "var(--muted)", fontSize: 13 }}>
-        Setzt den aktuellen Bestand auf 0 zurück. Alle bisherigen Einträge bleiben zur Nachvollziehbarkeit gespeichert, zählen aber nicht mehr mit — danach zuerst wieder einen Anfangsbestand eintragen.
+        Schließt den aktuellen Verkaufszeitraum ab (wie der Tagesabschluss an einem EC-Gerät): Bareinnahmen, Kartenumsatz und Kategorien werden als Bericht gespeichert, Kassenbuch-Bestand, Chronik und Bestellnummern starten danach neu.
+      </p>
+      <button className="btn" onClick={kassenschnitt} disabled={schnittLaeuft}>{schnittLaeuft ? "Wird erstellt…" : "Kassenschnitt durchführen"}</button>
+      {" "}
+      <button className="edit-link" onClick={() => setZeigeHistorie((v) => !v)}>{zeigeHistorie ? "Historie ausblenden" : "Bisherige Kassenschnitte anzeigen"}</button>
+      {zeigeHistorie && (
+        <div style={{ marginTop: 12 }}>
+          {kassenschnitte.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>Noch kein Kassenschnitt durchgeführt.</p>}
+          {kassenschnitte.map((k) => (
+            <div className="card" key={k.id} style={{ marginBottom: 10, fontSize: 13 }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>{new Date(k.erstelltAmMs).toLocaleString("de-DE")}</div>
+              <div>Bestellungen: {k.anzahlBestellungen} (storniert: {k.anzahlStorniert}) · Bar: {k.bareinnahmen.toFixed(2)} € · Karte: {k.karteneinnahmen.toFixed(2)} €</div>
+              <div style={{ color: "var(--muted)" }}>
+                {Object.entries(k.proKategorie || {}).map(([kat, wert]) => katLabel(kat) + ": " + wert.toFixed(2) + " €").join(" · ")}
+              </div>
+              <div style={{ color: "var(--muted)" }}>Kassenbuch-Bestand bei Abschluss: {k.kassenbuchBestand.toFixed(2)} €</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h2 className="section-title">Kassenbuch-Bestand manuell zurücksetzen</h2>
+      <p style={{ color: "var(--muted)", fontSize: 13 }}>
+        Setzt nur den Kassenbuch-Bestand zurück, ohne vollständigen Kassenschnitt (z.B. für eine Zwischenzählung). Alte Einträge bleiben erhalten.
       </p>
       <button className="btn secondary" onClick={neuerTag}>Kassenbuch zurücksetzen</button>
     </div>
@@ -896,7 +1044,7 @@ function Kasse() {
   const [kassePwError, setKassePwError] = useState("");
   const [cart, setCart] = useState({});
   const [gegeben, setGegeben] = useState("");
-  const [zahlungsart, setZahlungsart] = useState("bar");
+  const [personalverpflegung, setPersonalverpflegung] = useState(false);
   const [hinweis, setHinweis] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [lastNummer, setLastNummer] = useState(null);
@@ -906,6 +1054,8 @@ function Kasse() {
   const [suchNummer, setSuchNummer] = useState("");
   const [suchTreffer, setSuchTreffer] = useState(undefined);
   const [geschlossenPopup, setGeschlossenPopup] = useState(false);
+  const [getraenkeGeschlossenPopup, setGetraenkeGeschlossenPopup] = useState(false);
+  const verkaufstag = useVerkaufstag();
 
   const essenOffenCount = [1, 2, 3].filter((n) => einstellungen["ausgabe" + n]).length;
   const essenVerfuegbar = einstellungen.essenBesetzt && essenOffenCount > 0;
@@ -916,6 +1066,11 @@ function Kasse() {
     if (vorherEssenVerfuegbar.current && !essenVerfuegbar) setGeschlossenPopup(true);
     vorherEssenVerfuegbar.current = essenVerfuegbar;
   }, [essenVerfuegbar]);
+  const vorherGetraenkeVerfuegbar = useRef(getraenkeVerfuegbar);
+  useEffect(() => {
+    if (vorherGetraenkeVerfuegbar.current && !getraenkeVerfuegbar) setGetraenkeGeschlossenPopup(true);
+    vorherGetraenkeVerfuegbar.current = getraenkeVerfuegbar;
+  }, [getraenkeVerfuegbar]);
 
   useEffect(() => {
     if (lastNummer === null) return;
@@ -943,7 +1098,7 @@ function Kasse() {
   const gegebenZahl = gegeben ? parseFloat(gegeben.replace(",", ".")) : null;
   const rueckgeld = gegebenZahl !== null && !isNaN(gegebenZahl) ? gegebenZahl - totalCost : null;
 
-  const resetForm = () => { setCart({}); setGegeben(""); setZahlungsart("bar"); setHinweis(""); setEditingId(null); };
+  const resetForm = () => { setCart({}); setGegeben(""); setPersonalverpflegung(false); setHinweis(""); setEditingId(null); };
 
   const bestandAnpassen = async (items, richtung) => {
     if (!einstellungen.bestandsverwaltungAktiv) return;
@@ -977,24 +1132,26 @@ function Kasse() {
         if (!hatEssen) { essenStatus = "kein"; ausgabeNummer = null; archiviert = true; }
         else if (essenStatus === "kein") { essenStatus = "wartend"; ausgabeNummer = null; archiviert = false; }
         else if (essenStatus === "fertig") { essenStatus = ausgabeNummer ? "inBearbeitung" : "wartend"; }
+        const warInBearbeitung = bestehend.essenStatus === "inBearbeitung";
         await bestandAnpassen(bestehend.items, 1);
         await bestandAnpassen(items, -1);
         await updateDoc(doc(window.__db, "bestellungen", editingId), {
-          items, gesamtpreis: totalCost, hatEssen, hatGetraenke,
+          items, gesamtpreis: personalverpflegung ? 0 : totalCost, personalverpflegung, hatEssen, hatGetraenke,
           getraenkeFertig: hatGetraenke ? sofortFertig : true,
           getraenkeFertigZeitMs: sofortFertig ? Date.now() : (hatGetraenke ? null : bestehend.getraenkeFertigZeitMs || null),
           essenStatus, ausgabeNummer, archiviert,
           abschlussZeitMs: archiviert ? Date.now() : null,
-          hinweis: hinweis.trim(), zahlungsart,
+          hinweis: hinweis.trim(), zahlungsart: "bar",
+          ...(warInBearbeitung ? { bearbeitungsHinweisMs: Date.now() } : {}),
         });
         setLastNummer(bestehend.nummer);
       } else {
         const nummer = await naechsteBestellnummer();
         await addDoc(collection(window.__db, "bestellungen"), {
-          nummer, items, gesamtpreis: totalCost,
-          gegeben: zahlungsart === "bar" ? gegebenZahl : null,
-          rueckgeld: zahlungsart === "bar" ? rueckgeld : null,
-          zahlungsart,
+          nummer, items, gesamtpreis: personalverpflegung ? 0 : totalCost, personalverpflegung,
+          gegeben: !personalverpflegung ? gegebenZahl : null,
+          rueckgeld: !personalverpflegung ? rueckgeld : null,
+          zahlungsart: "bar",
           hinweis: hinweis.trim(), hatEssen, hatGetraenke,
           getraenkeFertig: hatGetraenke ? sofortFertig : true,
           getraenkeFertigZeitMs: sofortFertig ? Date.now() : null,
@@ -1022,10 +1179,12 @@ function Kasse() {
     setCart(neuerCart);
     setEditingId(b.id);
     setGegeben("");
-    setZahlungsart(b.zahlungsart || "bar");
+    setPersonalverpflegung(!!b.personalverpflegung);
     setHinweis(b.hinweis || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const kannBearbeiten = (b) => !b.hatEssen || b.essenStatus === "wartend" || b.essenStatus === "inBearbeitung";
 
   const stornieren = async (b) => {
     const { doc, updateDoc } = window.__fs;
@@ -1036,7 +1195,9 @@ function Kasse() {
   };
 
   const aktive = bestellungen.filter(istAktiv).sort((a, b) => (b.erstelltAmMs || 0) - (a.erstelltAmMs || 0));
-  const chronik = bestellungen.slice().sort((a, b) => (b.erstelltAmMs || 0) - (a.erstelltAmMs || 0)).slice(0, 15);
+  const chronik = bestellungen
+    .filter((b) => (b.erstelltAmMs || 0) >= (verkaufstag.tagStartMs || 0))
+    .slice().sort((a, b) => (b.erstelltAmMs || 0) - (a.erstelltAmMs || 0));
 
   const suchen = () => {
     const n = parseInt(suchNummer, 10);
@@ -1111,6 +1272,9 @@ function Kasse() {
       <InfoModal title={geschlossenPopup ? "Essensausgabe aktuell nicht verfügbar" : null}
         message="Es ist aktuell keine Ausgabe für Essen geöffnet bzw. besetzt. Essensbestellungen können momentan nicht aufgenommen werden."
         onClose={() => setGeschlossenPopup(false)} />
+      <InfoModal title={getraenkeGeschlossenPopup ? "Getränkeausgabe aktuell nicht verfügbar" : null}
+        message="Es ist aktuell keine Getränkeausgabe besetzt. Getränkebestellungen können momentan nicht aufgenommen werden."
+        onClose={() => setGetraenkeGeschlossenPopup(false)} />
 
       <h1 className="page-title">Kasse</h1>
 
@@ -1133,12 +1297,12 @@ function Kasse() {
       {KATEGORIEN.map(renderKategorieBlock)}
 
       <div className="bar">
-        <span><b>{totalItems}</b> Artikel — <b>{totalCost.toFixed(2)} €</b></span>
-        <div className="zahlungsart-row">
-          <button type="button" className={"zahlungsart-btn" + (zahlungsart === "bar" ? " aktiv" : "")} onClick={() => setZahlungsart("bar")}>Bar</button>
-          <button type="button" className={"zahlungsart-btn" + (zahlungsart === "karte" ? " aktiv" : "")} onClick={() => setZahlungsart("karte")}>Karte</button>
-        </div>
-        {!editingId && zahlungsart === "bar" && (
+        <span><b>{totalItems}</b> Artikel — <b>{personalverpflegung ? "0,00" : totalCost.toFixed(2)} €</b>{personalverpflegung && <span style={{ color: "var(--led-amber)", fontSize: 12 }}> (Personalverpflegung)</span>}</span>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+          <input type="checkbox" checked={personalverpflegung} onChange={(e) => setPersonalverpflegung(e.target.checked)} />
+          Personalverpflegung (0 €)
+        </label>
+        {!personalverpflegung && (
           <div className="rueckgeld-row">
             <label htmlFor="gegeben">Gegeben:</label>
             <input id="gegeben" value={gegeben} onChange={(e) => setGegeben(e.target.value)} placeholder="0,00" />
@@ -1161,7 +1325,7 @@ function Kasse() {
         <div className="order-row" key={b.id}>
           <span><b>Nr. {b.nummer}</b> — {b.gesamtpreis.toFixed(2)} € <span className="meta">· {orderStatusText(b)} · Gesamt: {gesamtStatusLabel(gesamtStatus(b))}</span></span>
           <span className="order-actions">
-            <button className="edit-link" onClick={() => startEditOrder(b)}>Bearbeiten</button>
+            {kannBearbeiten(b) && <button className="edit-link" onClick={() => startEditOrder(b)}>Bearbeiten</button>}
             <button className="del" onClick={() => stornieren(b)}>Stornieren</button>
           </span>
         </div>
@@ -1182,7 +1346,7 @@ function Kasse() {
           </span>
           {istAktiv(suchTreffer) && (
             <span className="order-actions">
-              <button className="edit-link" onClick={() => startEditOrder(suchTreffer)}>Bearbeiten</button>
+              {kannBearbeiten(suchTreffer) && <button className="edit-link" onClick={() => startEditOrder(suchTreffer)}>Bearbeiten</button>}
               <button className="del" onClick={() => stornieren(suchTreffer)}>Stornieren</button>
             </span>
           )}
@@ -1244,6 +1408,7 @@ function MonitorGetraenke() {
               onClick={() => setEinstellung({ getraenkeBesetzt: !einstellungen.getraenkeBesetzt })}>
               {einstellungen.getraenkeBesetzt ? "Ausgabe nicht besetzt melden" : "Ausgabe wieder besetzt melden"}
             </button>
+            <FullscreenToggle />
           </div>
         </div>
         {offen.length === 0 && <div className="empty">Keine offenen Bestellungen</div>}
@@ -1282,12 +1447,29 @@ function MonitorEssen() {
   useAusgabenZuweisung(bestellungen, ready, einstellungen);
   const [now, setNow] = useState(Date.now());
   const [warnung, setWarnung] = useState(null);
+  const [banner, setBanner] = useState([]);
+  const gesehenRef = useRef({});
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
 
   const aktiv = useMemo(() => bestellungen.filter((b) => istAktiv(b) && b.hatEssen && b.essenStatus !== "kein"), [bestellungen]);
+
+  // Banner-Hinweis: wenn eine Bestellung im Status "in Bearbeitung" nachträglich
+  // von der Kasse geändert wurde, kurz auffällig anzeigen, damit das Essensteam
+  // die Änderung an einer bereits laufenden Bestellung mitbekommt.
+  useEffect(() => {
+    bestellungen.forEach((b) => {
+      if (!b.bearbeitungsHinweisMs) return;
+      if (gesehenRef.current[b.id] === b.bearbeitungsHinweisMs) return;
+      if (Date.now() - b.bearbeitungsHinweisMs > 10000) { gesehenRef.current[b.id] = b.bearbeitungsHinweisMs; return; }
+      gesehenRef.current[b.id] = b.bearbeitungsHinweisMs;
+      const bannerId = b.id + "-" + b.bearbeitungsHinweisMs;
+      setBanner((prev) => [...prev, { id: bannerId, nummer: b.nummer }]);
+      setTimeout(() => setBanner((prev) => prev.filter((x) => x.id !== bannerId)), 10000);
+    });
+  }, [bestellungen]);
 
   const wartendeListe = useMemo(() =>
     aktiv.filter((b) => b.essenStatus === "wartend").sort((a, b) => (a.erstelltAmMs || 0) - (b.erstelltAmMs || 0)),
@@ -1329,6 +1511,11 @@ function MonitorEssen() {
     <div className="monitor">
       <Nav current="monitor-essen" />
       <InfoModal title={warnung ? "Ausgabe wird geschlossen" : null} message={warnung} onClose={() => setWarnung(null)} />
+      <div className="banner-stack">
+        {banner.map((x) => (
+          <div className="update-banner" key={x.id}>Bestellung {x.nummer} wurde aktualisiert</div>
+        ))}
+      </div>
       <div className="wrap">
         <div className="mon-head">
           <h1>Essen / Grill</h1>
@@ -1338,6 +1525,7 @@ function MonitorEssen() {
               onClick={() => setEinstellung({ essenBesetzt: !einstellungen.essenBesetzt })}>
               {einstellungen.essenBesetzt ? "Ausgabe nicht besetzt melden" : "Ausgabe wieder besetzt melden"}
             </button>
+            <FullscreenToggle />
           </div>
         </div>
 
@@ -1345,7 +1533,7 @@ function MonitorEssen() {
           {[1, 2, 3].map((n) => {
             const offen = einstellungen["ausgabe" + n];
             const order = aktiv.find((b) => b.ausgabeNummer === n && (b.essenStatus === "inBearbeitung" || b.essenStatus === "fertig"));
-            if (!offen) {
+            if (!order && !offen) {
               return (
                 <div className="ausgabe-tile geschlossen" key={n}>
                   <span className="ausgabe-tile-nr">Ausgabe {n} — geschlossen</span>
@@ -1361,13 +1549,14 @@ function MonitorEssen() {
                 </div>
               );
             }
-            const elapsed = now - ((order.essenStatus === "fertig" && order.essenFertigZeitMs) ? order.essenFertigZeitMs : (order.erstelltAmMs || Date.now()));
-            const cls = zeitKlasse(elapsed);
+            const istFertig = order.essenStatus === "fertig";
+            const elapsed = now - (istFertig && order.essenFertigZeitMs ? order.essenFertigZeitMs : (order.erstelltAmMs || Date.now()));
+            const cls = istFertig ? "" : zeitKlasse(elapsed);
             return (
-              <div className="ausgabe-tile belegt" key={n}>
+              <div className={"ausgabe-tile belegt" + (istFertig ? " fertig-gruen" : cls ? " " + cls : "")} key={n}>
                 <div className="ausgabe-tile-head">
-                  <span className="ausgabe-tile-nr">Ausgabe {n}</span>
-                  <button className="ausgabe-toggle on" onClick={() => toggleAusgabe(n)}>Offen</button>
+                  <span className="ausgabe-tile-nr">Ausgabe {n}{!offen ? " (schließt nach Abholung)" : ""}</span>
+                  <button className={"ausgabe-toggle" + (offen ? " on" : "")} onClick={() => toggleAusgabe(n)}>{offen ? "Offen" : "Geschlossen"}</button>
                 </div>
                 <div className="ausgabe-tile-head">
                   <span className="ausgabe-tile-num">Nr. {order.nummer}</span>
@@ -1380,10 +1569,7 @@ function MonitorEssen() {
                 </ul>
                 {order.hinweis && <p className="t-hinweis">{order.hinweis}</p>}
                 {order.essenStatus === "inBearbeitung" && (
-                  <>
-                    <button className="ready-btn" onClick={() => markFertig(order)}>Als fertig markieren</button>
-                    <button className="ready-btn sage" onClick={() => markFertigUndAbgeholt(order)}>Fertig &amp; abgeholt</button>
-                  </>
+                  <button className="ready-btn" onClick={() => markFertig(order)}>Als fertig markieren</button>
                 )}
                 {order.essenStatus === "fertig" && (
                   <button className="ready-btn sage" onClick={() => markAbgeholt(order)}>Abgeholt</button>
@@ -1426,28 +1612,32 @@ function Ausgabemonitor() {
   const einstellungen = useEinstellungen();
   useAusgabenZuweisung(bestellungen, ready, einstellungen);
 
-  const liste = useMemo(() => {
-    return bestellungen
-      .filter((b) => istAktiv(b) && b.hatEssen)
-      .sort((a, b) => {
-        const ax = a.ausgabeNummer || 99;
-        const bx = b.ausgabeNummer || 99;
-        if (ax !== bx) return ax - bx;
-        return (a.erstelltAmMs || 0) - (b.erstelltAmMs || 0);
-      });
+  const { sichtbar, weitereWartend } = useMemo(() => {
+    const aktiv = bestellungen.filter((b) => istAktiv(b) && b.hatEssen);
+    const fertig = aktiv.filter((b) => b.essenStatus === "fertig")
+      .sort((a, b) => (a.essenFertigZeitMs || a.erstelltAmMs || 0) - (b.essenFertigZeitMs || b.erstelltAmMs || 0));
+    const inBearbeitung = aktiv.filter((b) => b.essenStatus === "inBearbeitung")
+      .sort((a, b) => (a.ausgabeNummer || 99) - (b.ausgabeNummer || 99));
+    const wartend = aktiv.filter((b) => b.essenStatus === "wartend")
+      .sort((a, b) => (a.erstelltAmMs || 0) - (b.erstelltAmMs || 0));
+    const wartendSichtbar = wartend.slice(0, 3);
+    return {
+      sichtbar: [...fertig, ...inBearbeitung, ...wartendSichtbar],
+      weitereWartend: Math.max(0, wartend.length - wartendSichtbar.length),
+    };
   }, [bestellungen]);
 
   const kacheln = useMemo(() => {
-    const gewicht = (b) => (b.essenStatus === "inBearbeitung" ? 2.2 : 1);
-    const gesamtgewicht = liste.reduce((s, b) => s + gewicht(b), 0) || 1;
+    const gewicht = (b) => (b.essenStatus === "fertig" ? 2.2 : 1);
+    const gesamtgewicht = sichtbar.reduce((s, b) => s + gewicht(b), 0) || 1;
     const verfuegbareHoeheVh = 84;
-    const abstandVh = liste.length > 1 ? (liste.length - 1) * 0.7 : 0;
+    const abstandVh = sichtbar.length > 1 ? (sichtbar.length - 1) * 0.7 : 0;
     const nutzbareHoeheVh = Math.max(8, verfuegbareHoeheVh - abstandVh);
-    return liste.map((b) => {
+    return sichtbar.map((b) => {
       const hoeheVh = (gewicht(b) / gesamtgewicht) * nutzbareHoeheVh;
-      return { b, hoeheVh, gross: b.essenStatus === "inBearbeitung" };
+      return { b, hoeheVh, gross: b.essenStatus === "fertig" };
     });
-  }, [liste]);
+  }, [sichtbar]);
 
   return (
     <div className="monitor">
@@ -1455,21 +1645,24 @@ function Ausgabemonitor() {
       <div className="wrap" style={{ maxWidth: "100%", padding: "16px 0" }}>
         <div className="mon-head" style={{ padding: "0 1.2vw" }}>
           <h1>Ausgabemonitor</h1>
-          <span className="led-box led-amber">{liste.length} Bestellungen</span>
+          <div className="mon-controls">
+            <span className="led-box led-amber">{sichtbar.length} angezeigt{weitereWartend > 0 ? " · +" + weitereWartend + " warten" : ""}</span>
+            <FullscreenToggle />
+          </div>
         </div>
-        {liste.length === 0 && <div className="empty">Keine offenen Bestellungen</div>}
+        {sichtbar.length === 0 && <div className="empty">Keine offenen Bestellungen</div>}
         <div className="ausgabe-fullscreen">
           {kacheln.map(({ b, hoeheVh, gross }) => {
             const nummerFont = Math.min(9, Math.max(2.2, hoeheVh * 0.34));
             const ausgabeFont = Math.min(7, Math.max(1.8, hoeheVh * 0.26));
             const statusFont = Math.min(3, Math.max(1.2, hoeheVh * 0.14));
             return (
-              <div key={b.id} className={"ausgabe-tile-full" + (gross ? " gross" : "")} style={{ height: hoeheVh + "vh" }}>
+              <div key={b.id} className={"ausgabe-tile-full" + (gross ? " gross" : "") + (b.essenStatus === "fertig" ? " fertig-gruen" : "")} style={{ height: hoeheVh + "vh" }}>
                 <div className="links">
-                  <span style={{ fontSize: ausgabeFont + "vh", color: "#9CA0AC", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
+                  <span style={{ fontSize: ausgabeFont + "vh", color: "var(--mon-muted)", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
                     {b.ausgabeNummer ? "Ausgabe " + b.ausgabeNummer : "–"}
                   </span>
-                  <span style={{ fontSize: nummerFont + "vh", color: "#fff", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
+                  <span style={{ fontSize: nummerFont + "vh", color: "var(--mon-text)", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
                     Nr. {b.nummer}
                   </span>
                 </div>
@@ -1486,6 +1679,8 @@ function Ausgabemonitor() {
 }
 
 function App() {
+  const ready = useFirebaseReady();
+  useMitternachtsReset(ready);
   const [route, setRoute] = useState(window.location.hash.replace("#", "") || "kasse");
   useEffect(() => {
     const onHash = () => setRoute(window.location.hash.replace("#", "") || "kasse");

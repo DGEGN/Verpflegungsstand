@@ -17,6 +17,9 @@ service cloud.firestore {
     match /kassenbuch/{eintragId} {
       allow read, write: if true;
     }
+    match /kassenschnitte/{eintragId} {
+      allow read, write: if true;
+    }
   }
 }
 
