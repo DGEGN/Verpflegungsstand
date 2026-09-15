@@ -146,13 +146,14 @@
   @media (max-width: 760px) { .ausgaben-grid { grid-template-columns: 1fr; } }
   .ausgabe-tile { background: var(--mon-card); border: 1px solid var(--mon-border); border-radius: 16px; padding: 18px; min-height: 220px; display: flex; flex-direction: column; gap: 10px; position: relative; }
   .ausgabe-tile.belegt { border-color: var(--led-amber); }
-  .ausgabe-tile.warn { border-color: var(--led-amber); background: color-mix(in srgb, var(--led-amber) 14%, var(--mon-card)); }
-  .ausgabe-tile.late { border-color: var(--rust); background: color-mix(in srgb, var(--rust) 16%, var(--mon-card)); }
-  .ausgabe-tile.fertig-gruen { border-color: var(--led-green); background: color-mix(in srgb, var(--led-green) 14%, var(--mon-card)); }
+  .ausgabe-tile.warn { border-color: var(--led-amber); border-width: 3px; background: color-mix(in srgb, var(--led-amber) 32%, var(--mon-card)); }
+  .ausgabe-tile.late { border-color: var(--rust); border-width: 3px; background: color-mix(in srgb, var(--rust) 36%, var(--mon-card)); }
+  .ausgabe-tile.fertig-gruen { border-color: var(--led-green); border-width: 3px; background: color-mix(in srgb, var(--led-green) 32%, var(--mon-card)); }
+  .personal-badge { display: inline-block; background: var(--navy-light); color: #fff; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 12px; margin: 2px 0 4px; }
   .ausgabe-tile.frei { opacity: 0.6; align-items: center; justify-content: center; text-align: center; }
   .ausgabe-tile.geschlossen { opacity: 0.35; align-items: center; justify-content: center; text-align: center; }
-  .banner-stack { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 60; align-items: center; }
-  .update-banner { background: var(--rust); color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
+  .banner-stack { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 0; max-width: 1200px; margin: 0 auto; }
+  .update-banner { background: var(--rust); color: #fff; padding: 22px 28px; border-radius: 12px; font-size: 26px; font-weight: 800; box-shadow: 0 6px 18px rgba(0,0,0,0.3); text-align: center; }
   .ausgabe-tile-head { display: flex; justify-content: space-between; align-items: center; }
   .ausgabe-tile-nr { font-size: 15px; color: var(--mon-muted); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
   .ausgabe-toggle { background: var(--mon-border); border: none; color: var(--mon-muted); border-radius: 8px; padding: 5px 10px; font-size: 11px; cursor: pointer; font-weight: 600; }
@@ -187,7 +188,7 @@
     transition: background 0.3s ease;
   }
   .ausgabe-tile-full.gross { font-weight: 700; }
-  .ausgabe-tile-full.fertig-gruen { border-color: var(--led-green); background: color-mix(in srgb, var(--led-green) 12%, var(--mon-card)); }
+  .ausgabe-tile-full.fertig-gruen { border-color: var(--led-green); border-width: 3px; background: color-mix(in srgb, var(--led-green) 30%, var(--mon-card)); }
   .ausgabe-tile-full .links { display: flex; align-items: baseline; gap: 1.2vw; }
   .status-tag { display: inline-block; font-weight: 700; padding: 0.3em 0.9em; border-radius: 999px; }
   .status-wartend { background: var(--mon-border); color: var(--mon-muted); }
@@ -205,13 +206,13 @@
 <script type="module">
   // Firebase-Konfiguration: eigene Projektdaten aus der Firebase-Konsole eintragen
   // (Project Settings -> General -> "Your apps" -> SDK setup and configuration)
-   window.firebaseConfig = {
-    apiKey: "AIzaSyA6gB4xskgydH3v6TtmvKpNgjlaSio_8IM",
-  authDomain: "verpflegungsstand.firebaseapp.com",
-  projectId: "verpflegungsstand",
-  storageBucket: "verpflegungsstand.firebasestorage.app",
-  messagingSenderId: "808275832434",
-  appId: "1:808275832434:web:5f476127a341aa4dfd5ceb"
+  window.firebaseConfig = {
+    apiKey: "DEIN_API_KEY",
+    authDomain: "DEIN_PROJEKT.firebaseapp.com",
+    projectId: "DEIN_PROJEKT",
+    storageBucket: "DEIN_PROJEKT.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
   };
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -235,11 +236,11 @@ const { useState, useEffect, useMemo, useRef } = React;
 // anpassen — wer die index.html einsehen kann, sieht auch dieses Passwort,
 // es schützt also nur vor versehentlichem Ändern durch Kassenpersonal,
 // nicht vor absichtlichem Zugriff.
-const ADMIN_PASSWORT = "Kuckucksbaehnel2026";
+const ADMIN_PASSWORT = "aenderMich123";
 
 // Einfaches Passwort für den Zugriff auf den Kasse-Reiter (kein Konto, nur
 // ein gemeinsames Passwort fürs Kassenpersonal). Vor dem Einsatz anpassen.
-const KASSE_PASSWORT = "Kinderfest2026";
+const KASSE_PASSWORT = "kinderfest";
 
 const KATEGORIEN = [
   { id: "essen", label: "Essen" },
@@ -582,6 +583,7 @@ function useAusgabenZuweisung(bestellungen, ready, einstellungen) {
       updateDoc(doc(window.__db, "bestellungen", b.id), {
         essenStatus: "inBearbeitung",
         ausgabeNummer: frei[idx],
+        essenInBearbeitungZeitMs: Date.now(),
       }).catch(() => {});
     });
   }, [bestellungen, ready, einstellungen]);
@@ -652,6 +654,7 @@ function Artikelverwaltung() {
     await addDoc(collection(window.__db, "artikel"), {
       name: name.trim(), preis: parseFloat(preis.replace(",", ".")), kategorie, ausverkauft: false,
       bestand: startBestand ? parseInt(startBestand, 10) || 0 : 0,
+      bestandVerfolgt: true,
     });
     setName(""); setPreis(""); setStartBestand("");
   };
@@ -664,6 +667,11 @@ function Artikelverwaltung() {
   const toggleAusverkauft = async (a) => {
     const { doc, updateDoc } = window.__fs;
     await updateDoc(doc(window.__db, "artikel", a.id), { ausverkauft: !a.ausverkauft });
+  };
+
+  const toggleBestandVerfolgt = async (a) => {
+    const { doc, updateDoc } = window.__fs;
+    await updateDoc(doc(window.__db, "artikel", a.id), { bestandVerfolgt: !(a.bestandVerfolgt !== false) });
   };
 
   const startEdit = (a) => {
@@ -722,7 +730,7 @@ function Artikelverwaltung() {
       {error && <p style={{ color: "var(--rust)", fontSize: 13 }}>{error}</p>}
       {!ready && <p>Verbinde mit Firebase…</p>}
       <table>
-        <thead><tr><th>Name</th><th>Kategorie</th><th>Preis</th>{einstellungen.bestandsverwaltungAktiv && <th>Bestand</th>}<th>Verfügbar</th>{admin && <th></th>}</tr></thead>
+        <thead><tr><th>Name</th><th>Kategorie</th><th>Preis</th>{einstellungen.bestandsverwaltungAktiv && <th>Bestand</th>}{einstellungen.bestandsverwaltungAktiv && <th>Bestand verfolgen</th>}<th>Verfügbar</th>{admin && <th></th>}</tr></thead>
         <tbody>
           {artikel.map((a) => (
             editId === a.id ? (
@@ -737,6 +745,7 @@ function Artikelverwaltung() {
                 {einstellungen.bestandsverwaltungAktiv && (
                   <td><input value={editBestand} onChange={(e) => setEditBestand(e.target.value)} style={{ width: 70 }} /></td>
                 )}
+                {einstellungen.bestandsverwaltungAktiv && <td></td>}
                 <td></td>
                 <td>
                   <button className="edit-link" onClick={() => saveEdit(a.id)}>Speichern</button>
@@ -748,7 +757,14 @@ function Artikelverwaltung() {
                 <td>{a.name}</td>
                 <td>{katLabel(a.kategorie)}</td>
                 <td>{a.preis.toFixed(2)} €</td>
-                {einstellungen.bestandsverwaltungAktiv && <td>{a.bestand || 0}</td>}
+                {einstellungen.bestandsverwaltungAktiv && <td>{a.bestandVerfolgt === false ? "–" : (a.bestand || 0)}</td>}
+                {einstellungen.bestandsverwaltungAktiv && (
+                  <td>
+                    <button className="btn small" style={a.bestandVerfolgt === false ? {} : { background: "var(--green)" }} onClick={() => toggleBestandVerfolgt(a)} disabled={!admin}>
+                      {a.bestandVerfolgt === false ? "Aus" : "An"}
+                    </button>
+                  </td>
+                )}
                 <td>
                   {admin ? (
                     <button className="btn small" style={a.ausverkauft ? { background: "var(--rust)" } : { background: "var(--green)" }} onClick={() => toggleAusverkauft(a)}>
@@ -1048,6 +1064,7 @@ function Kasse() {
   const [kassePwError, setKassePwError] = useState("");
   const [cart, setCart] = useState({});
   const [gegeben, setGegeben] = useState("");
+  const [rabatt, setRabatt] = useState("");
   const [personalverpflegung, setPersonalverpflegung] = useState(false);
   const [hinweis, setHinweis] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -1082,7 +1099,7 @@ function Kasse() {
     return () => clearTimeout(t);
   }, [lastNummer]);
 
-  const istAusverkauft = (a) => a.ausverkauft || (einstellungen.bestandsverwaltungAktiv && (a.bestand || 0) <= 0);
+  const istAusverkauft = (a) => a.ausverkauft || (einstellungen.bestandsverwaltungAktiv && a.bestandVerfolgt !== false && (a.bestand || 0) <= 0);
 
   const changeQty = (a, delta) => {
     if (istAusverkauft(a)) return;
@@ -1095,19 +1112,24 @@ function Kasse() {
   };
 
   const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
-  const totalCost = Object.entries(cart).reduce((sum, [id, qty]) => {
+  const totalCostVorRabatt = Object.entries(cart).reduce((sum, [id, qty]) => {
     const a = artikel.find((x) => x.id === id);
     return sum + (a ? a.preis * qty : 0);
   }, 0);
+  const rabattZahl = rabatt ? parseFloat(rabatt.replace(",", ".")) || 0 : 0;
+  const totalCost = Math.max(0, totalCostVorRabatt - rabattZahl);
   const gegebenZahl = gegeben ? parseFloat(gegeben.replace(",", ".")) : null;
   const rueckgeld = gegebenZahl !== null && !isNaN(gegebenZahl) ? gegebenZahl - totalCost : null;
 
-  const resetForm = () => { setCart({}); setGegeben(""); setPersonalverpflegung(false); setHinweis(""); setEditingId(null); };
+  const resetForm = () => { setCart({}); setGegeben(""); setRabatt(""); setPersonalverpflegung(false); setHinweis(""); setEditingId(null); };
 
   const bestandAnpassen = async (items, richtung) => {
     if (!einstellungen.bestandsverwaltungAktiv) return;
     const { doc, updateDoc, increment } = window.__fs;
-    await Promise.all(items.map((i) =>
+    await Promise.all(items.filter((i) => {
+      const a = artikel.find((x) => x.id === i.artikelId);
+      return !a || a.bestandVerfolgt !== false;
+    }).map((i) =>
       updateDoc(doc(window.__db, "artikel", i.artikelId), { bestand: increment(richtung * i.menge) }).catch(() => {})
     ));
   };
@@ -1136,23 +1158,25 @@ function Kasse() {
         if (!hatEssen) { essenStatus = "kein"; ausgabeNummer = null; archiviert = true; }
         else if (essenStatus === "kein") { essenStatus = "wartend"; ausgabeNummer = null; archiviert = false; }
         else if (essenStatus === "fertig") { essenStatus = ausgabeNummer ? "inBearbeitung" : "wartend"; }
-        const warInBearbeitung = bestehend.essenStatus === "inBearbeitung";
+        const betrafLaufendeBearbeitung = bestehend.essenStatus === "inBearbeitung" || (bestehend.hatGetraenke && !bestehend.getraenkeFertig);
         await bestandAnpassen(bestehend.items, 1);
         await bestandAnpassen(items, -1);
         await updateDoc(doc(window.__db, "bestellungen", editingId), {
-          items, gesamtpreis: personalverpflegung ? 0 : totalCost, personalverpflegung, hatEssen, hatGetraenke,
+          items, gesamtpreis: personalverpflegung ? 0 : totalCost, gesamtpreisVorRabatt: totalCostVorRabatt, rabattBetrag: rabattZahl,
+          personalverpflegung, hatEssen, hatGetraenke,
           getraenkeFertig: hatGetraenke ? sofortFertig : true,
           getraenkeFertigZeitMs: sofortFertig ? Date.now() : (hatGetraenke ? null : bestehend.getraenkeFertigZeitMs || null),
           essenStatus, ausgabeNummer, archiviert,
           abschlussZeitMs: archiviert ? Date.now() : null,
           hinweis: hinweis.trim(), zahlungsart: "bar",
-          ...(warInBearbeitung ? { bearbeitungsHinweisMs: Date.now() } : {}),
+          ...(betrafLaufendeBearbeitung ? { bearbeitungsHinweisMs: Date.now() } : {}),
         });
         setLastNummer(bestehend.nummer);
       } else {
         const nummer = await naechsteBestellnummer();
         await addDoc(collection(window.__db, "bestellungen"), {
-          nummer, items, gesamtpreis: personalverpflegung ? 0 : totalCost, personalverpflegung,
+          nummer, items, gesamtpreis: personalverpflegung ? 0 : totalCost, gesamtpreisVorRabatt: totalCostVorRabatt, rabattBetrag: rabattZahl,
+          personalverpflegung,
           gegeben: !personalverpflegung ? gegebenZahl : null,
           rueckgeld: !personalverpflegung ? rueckgeld : null,
           zahlungsart: "bar",
@@ -1160,7 +1184,9 @@ function Kasse() {
           getraenkeFertig: hatGetraenke ? sofortFertig : true,
           getraenkeFertigZeitMs: sofortFertig ? Date.now() : null,
           essenStatus: hatEssen ? "wartend" : "kein",
+          essenInBearbeitungZeitMs: null,
           essenFertigZeitMs: null,
+          viaHotkeyMs: null,
           ausgabeNummer: null,
           storniert: false, archiviert: sofortFertig,
           abschlussZeitMs: sofortFertig ? Date.now() : null,
@@ -1183,6 +1209,7 @@ function Kasse() {
     setCart(neuerCart);
     setEditingId(b.id);
     setGegeben("");
+    setRabatt(b.rabattBetrag ? String(b.rabattBetrag).replace(".", ",") : "");
     setPersonalverpflegung(!!b.personalverpflegung);
     setHinweis(b.hinweis || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1235,7 +1262,7 @@ function Kasse() {
                 {istAusverkauft(a) ? <div className="ausverkauft-tag">Ausverkauft</div> : (
                   <>
                     <div className="price">{a.preis.toFixed(2)} €</div>
-                    {einstellungen.bestandsverwaltungAktiv && <div className="price">Noch {a.bestand || 0}</div>}
+                    {einstellungen.bestandsverwaltungAktiv && a.bestandVerfolgt !== false && <div className="price">Noch {a.bestand || 0}</div>}
                   </>
                 )}
                 <div className="stepper">
@@ -1301,11 +1328,21 @@ function Kasse() {
       {KATEGORIEN.map(renderKategorieBlock)}
 
       <div className="bar">
-        <span><b>{totalItems}</b> Artikel — <b>{personalverpflegung ? "0,00" : totalCost.toFixed(2)} €</b>{personalverpflegung && <span style={{ color: "var(--led-amber)", fontSize: 12 }}> (Personalverpflegung)</span>}</span>
+        <span>
+          <b>{totalItems}</b> Artikel — <b>{personalverpflegung ? "0,00" : totalCost.toFixed(2)} €</b>
+          {!personalverpflegung && rabattZahl > 0 && <span style={{ color: "var(--muted)", fontSize: 12 }}> (statt {totalCostVorRabatt.toFixed(2)} €)</span>}
+          {personalverpflegung && <span style={{ color: "var(--led-amber)", fontSize: 12 }}> (Personalverpflegung)</span>}
+        </span>
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
           <input type="checkbox" checked={personalverpflegung} onChange={(e) => setPersonalverpflegung(e.target.checked)} />
           Personalverpflegung (0 €)
         </label>
+        {!personalverpflegung && (
+          <div className="rueckgeld-row">
+            <label htmlFor="rabatt">Rabatt €:</label>
+            <input id="rabatt" value={rabatt} onChange={(e) => setRabatt(e.target.value)} placeholder="0,00" style={{ width: 70 }} />
+          </div>
+        )}
         {!personalverpflegung && (
           <div className="rueckgeld-row">
             <label htmlFor="gegeben">Gegeben:</label>
@@ -1376,10 +1413,24 @@ function MonitorGetraenke() {
   const { bestellungen } = useBestellungen();
   const einstellungen = useEinstellungen();
   const [now, setNow] = useState(Date.now());
+  const [banner, setBanner] = useState([]);
+  const gesehenRef = useRef({});
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    bestellungen.forEach((b) => {
+      if (!b.bearbeitungsHinweisMs) return;
+      if (gesehenRef.current[b.id] === b.bearbeitungsHinweisMs) return;
+      if (Date.now() - b.bearbeitungsHinweisMs > 10000) { gesehenRef.current[b.id] = b.bearbeitungsHinweisMs; return; }
+      gesehenRef.current[b.id] = b.bearbeitungsHinweisMs;
+      const bannerId = b.id + "-" + b.bearbeitungsHinweisMs;
+      setBanner((prev) => [...prev, { id: bannerId, nummer: b.nummer }]);
+      setTimeout(() => setBanner((prev) => prev.filter((x) => x.id !== bannerId)), 10000);
+    });
+  }, [bestellungen]);
 
   const offen = useMemo(() => {
     return bestellungen
@@ -1403,6 +1454,13 @@ function MonitorGetraenke() {
   return (
     <div className="monitor">
       <Nav current="monitor-getraenke" />
+      {banner.length > 0 && (
+        <div className="banner-stack">
+          {banner.map((x) => (
+            <div className="update-banner" key={x.id}>Bestellung {x.nummer} wurde aktualisiert</div>
+          ))}
+        </div>
+      )}
       <div className="wrap">
         <div className="mon-head">
           <h1>Getränke</h1>
@@ -1429,6 +1487,7 @@ function MonitorGetraenke() {
                 {b.hatEssen && (b.ausgabeNummer
                   ? <span className="ausgabe-badge">Ausgabe {b.ausgabeNummer}</span>
                   : <span className="ausgabe-wait">wartet auf Ausgabe</span>)}
+                {b.personalverpflegung && <span className="personal-badge">Personalbestellung</span>}
                 <ul className="t-items">
                   {b.items.filter((i) => i.kategorie === "alkoholfrei" || i.kategorie === "alkoholisch").map((i, idx) => (
                     <li key={idx}><b>{i.menge}×</b>{i.name}</li>
@@ -1495,7 +1554,7 @@ function MonitorEssen() {
     const { doc, updateDoc } = window.__fs;
     const jetzt = Date.now();
     await updateDoc(doc(window.__db, "bestellungen", b.id), {
-      essenStatus: "fertig", essenFertigZeitMs: jetzt, archiviert: true, abschlussZeitMs: jetzt,
+      essenStatus: "fertig", essenFertigZeitMs: jetzt, archiviert: true, abschlussZeitMs: jetzt, viaHotkeyMs: jetzt,
     });
   };
 
@@ -1515,11 +1574,13 @@ function MonitorEssen() {
     <div className="monitor">
       <Nav current="monitor-essen" />
       <InfoModal title={warnung ? "Ausgabe wird geschlossen" : null} message={warnung} onClose={() => setWarnung(null)} />
-      <div className="banner-stack">
-        {banner.map((x) => (
-          <div className="update-banner" key={x.id}>Bestellung {x.nummer} wurde aktualisiert</div>
-        ))}
-      </div>
+      {banner.length > 0 && (
+        <div className="banner-stack">
+          {banner.map((x) => (
+            <div className="update-banner" key={x.id}>Bestellung {x.nummer} wurde aktualisiert</div>
+          ))}
+        </div>
+      )}
       <div className="wrap">
         <div className="mon-head">
           <h1>Essen / Grill</h1>
@@ -1554,7 +1615,12 @@ function MonitorEssen() {
               );
             }
             const istFertig = order.essenStatus === "fertig";
-            const elapsed = now - (istFertig && order.essenFertigZeitMs ? order.essenFertigZeitMs : (order.erstelltAmMs || Date.now()));
+            // Timer zeigt die Zeit im aktuellen Status, nicht seit Bestelleingang —
+            // startet also bei jedem Statuswechsel wieder bei 0.
+            const statusStart = istFertig
+              ? (order.essenFertigZeitMs || order.erstelltAmMs || Date.now())
+              : (order.essenInBearbeitungZeitMs || order.erstelltAmMs || Date.now());
+            const elapsed = now - statusStart;
             const cls = istFertig ? "" : zeitKlasse(elapsed);
             return (
               <div className={"ausgabe-tile belegt" + (istFertig ? " fertig-gruen" : cls ? " " + cls : "")} key={n}>
@@ -1566,6 +1632,7 @@ function MonitorEssen() {
                   <span className="ausgabe-tile-num">Nr. {order.nummer}</span>
                   <span className={"ausgabe-tile-time " + cls}>{formatElapsed(elapsed)}</span>
                 </div>
+                {order.personalverpflegung && <span className="personal-badge">Personalbestellung</span>}
                 <ul className="t-items">
                   {order.items.filter((i) => i.kategorie === "essen").map((i, idx) => (
                     <li key={idx}><b>{i.menge}×</b>{i.name}</li>
@@ -1593,6 +1660,7 @@ function MonitorEssen() {
                   <div className="queue-tile" key={b.id}>
                     <div className="q-nr">Nr. {b.nummer}</div>
                     <div className="q-time">wartet seit {formatElapsed(elapsed)}</div>
+                    {b.personalverpflegung && <span className="personal-badge">Personalbestellung</span>}
                     <ul>
                       {b.items.filter((i) => i.kategorie === "essen").map((i, idx) => (
                         <li key={idx}>{i.menge}× {i.name}</li>
