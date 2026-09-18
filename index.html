@@ -9,7 +9,7 @@
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#1B3A63" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="Verpflegungsstand" />
+<meta name="apple-mobile-web-app-title" content="Kuckucks-Bähnel" />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -208,17 +208,18 @@
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/qrcode-generator@1.4.4/qrcode.js"></script>
 
 <script type="module">
   // Firebase-Konfiguration: eigene Projektdaten aus der Firebase-Konsole eintragen
   // (Project Settings -> General -> "Your apps" -> SDK setup and configuration)
   window.firebaseConfig = {
-    apiKey: "AIzaSyA6gB4xskgydH3v6TtmvKpNgjlaSio_8IM",
-  authDomain: "verpflegungsstand.firebaseapp.com",
-  projectId: "verpflegungsstand",
-  storageBucket: "verpflegungsstand.firebasestorage.app",
-  messagingSenderId: "808275832434",
-  appId: "1:808275832434:web:5f476127a341aa4dfd5ceb"
+    apiKey: "DEIN_API_KEY",
+    authDomain: "DEIN_PROJEKT.firebaseapp.com",
+    projectId: "DEIN_PROJEKT",
+    storageBucket: "DEIN_PROJEKT.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
   };
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -242,11 +243,11 @@ const { useState, useEffect, useMemo, useRef } = React;
 // anpassen — wer die index.html einsehen kann, sieht auch dieses Passwort,
 // es schützt also nur vor versehentlichem Ändern durch Kassenpersonal,
 // nicht vor absichtlichem Zugriff.
-const ADMIN_PASSWORT = "Kuckucksbaehnel2026";
+const ADMIN_PASSWORT = "aenderMich123";
 
 // Einfaches Passwort für den Zugriff auf den Kasse-Reiter (kein Konto, nur
 // ein gemeinsames Passwort fürs Kassenpersonal). Vor dem Einsatz anpassen.
-const KASSE_PASSWORT = "Kinderfest2026";
+const KASSE_PASSWORT = "kinderfest";
 
 const KATEGORIEN = [
   { id: "essen", label: "Essen" },
@@ -611,6 +612,42 @@ function useAusgabenZuweisung(bestellungen, ready, einstellungen) {
   }, [bestellungen, ready, einstellungen]);
 }
 
+// Erzeugt SVG-Markup für einen QR-Code aus einem Text (per qrcode-generator CDN-Lib).
+function erzeugeQrSvg(text, zellgroesse) {
+  try {
+    const qr = qrcode(0, "M");
+    qr.addData(text);
+    qr.make();
+    return qr.createSvgTag({ cellSize: zellgroesse || 6, margin: 4 });
+  } catch (e) {
+    return "";
+  }
+}
+
+// Baut den Beleg-Text (für QR-Code und Anzeige) aus einer Bestellung.
+function belegText(b) {
+  const zeilen = [
+    "Kuckucks-Bähnel",
+    "Bestellung Nr. " + b.nummer,
+    ...b.items.map((i) => i.menge + "x " + i.name + " " + (i.preis * i.menge).toFixed(2) + " €"),
+    "---",
+    "Gesamt: " + b.gesamtpreis.toFixed(2) + " €",
+  ];
+  if (b.hinweis) zeilen.push("Hinweis: " + b.hinweis);
+  return zeilen.join("\n");
+}
+
+// Schickt eine frisch gesendete Bestellung an eine ggf. geöffnete
+// Kundenanzeige (zweiter Tab/Fenster auf einem zweiten Bildschirm, gleiches
+// Gerät). Läuft rein lokal im Browser, ohne Firestore-Umweg.
+function sendeAnKundenanzeige(bestellung) {
+  try {
+    const kanal = new BroadcastChannel("kuechenmonitor-kundenanzeige");
+    kanal.postMessage(bestellung);
+    kanal.close();
+  } catch (e) {}
+}
+
 function Nav({ current }) {
   const [dunkel, setDunkel] = useTheme();
   const links = [
@@ -620,6 +657,7 @@ function Nav({ current }) {
     ["monitor-getraenke", "Getränke"],
     ["monitor-essen", "Essen"],
     ["ausgabemonitor", "Ausgabe"],
+    ["kundenanzeige", "Kundenanzeige"],
   ];
   return (
     <div className="nav-wrap">
@@ -1219,6 +1257,9 @@ function Kasse() {
         });
         await bestandAnpassen(items, -1);
         setLastNummer(nummer);
+        if (!personalverpflegung) {
+          sendeAnKundenanzeige({ nummer, items, gesamtpreis: totalCost, hinweis: hinweis.trim() });
+        }
       }
       resetForm();
     } catch (e) {
@@ -1811,6 +1852,59 @@ function Ausgabemonitor() {
   );
 }
 
+function Kundenanzeige() {
+  const [bestellung, setBestellung] = useState(null);
+  const [qrSvg, setQrSvg] = useState("");
+
+  useEffect(() => {
+    let kanal;
+    try {
+      kanal = new BroadcastChannel("kuechenmonitor-kundenanzeige");
+      kanal.onmessage = (e) => setBestellung(e.data);
+    } catch (e) {}
+    return () => { if (kanal) kanal.close(); };
+  }, []);
+
+  useEffect(() => {
+    if (!bestellung) { setQrSvg(""); return; }
+    setQrSvg(erzeugeQrSvg(belegText(bestellung), 6));
+  }, [bestellung]);
+
+  return (
+    <div className="monitor">
+      <Nav current="kundenanzeige" />
+      <div className="wrap" style={{ textAlign: "center", paddingTop: "4vh" }}>
+        {!bestellung && (
+          <div className="empty">
+            Warte auf die nächste Bestellung …
+            <div style={{ fontSize: 13, marginTop: 10 }}>Dieser Tab muss auf dem Kassen-Gerät geöffnet bleiben (z.B. auf einem zweiten Bildschirm).</div>
+          </div>
+        )}
+        {bestellung && (
+          <>
+            <div style={{ fontSize: "7vh", fontFamily: "'Poppins', sans-serif", fontWeight: 700, color: "var(--mon-text)", marginBottom: "2vh" }}>
+              Nr. {bestellung.nummer}
+            </div>
+            <div
+              style={{ display: "inline-block", background: "#fff", padding: 16, borderRadius: 16 }}
+              dangerouslySetInnerHTML={{ __html: qrSvg }}
+            />
+            <div style={{ marginTop: "3vh", fontSize: 18, color: "var(--mon-muted)" }}>
+              {bestellung.items.map((i, idx) => (
+                <div key={idx}>{i.menge}× {i.name}</div>
+              ))}
+              <div style={{ marginTop: 10, fontWeight: 700, color: "var(--mon-text)", fontSize: 24 }}>
+                {bestellung.gesamtpreis.toFixed(2)} €
+              </div>
+              {bestellung.hinweis && <div style={{ marginTop: 6, color: "var(--rust)", fontWeight: 700 }}>{bestellung.hinweis}</div>}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const ready = useFirebaseReady();
   useMitternachtsReset(ready);
@@ -1824,6 +1918,7 @@ function App() {
   if (route === "monitor-getraenke") return <MonitorGetraenke />;
   if (route === "monitor-essen") return <MonitorEssen />;
   if (route === "ausgabemonitor") return <Ausgabemonitor />;
+  if (route === "kundenanzeige") return <Kundenanzeige />;
 
   return (
     <div>
