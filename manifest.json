@@ -1,6 +1,6 @@
 {
   "name": "Kuckucks-Bähnel Essens/Getränke Stand",
-  "short_name": "Verpflegungsstand",
+  "short_name": "Verkaufssystem KKB",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
