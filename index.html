@@ -213,12 +213,12 @@
   // Firebase-Konfiguration: eigene Projektdaten aus der Firebase-Konsole eintragen
   // (Project Settings -> General -> "Your apps" -> SDK setup and configuration)
   window.firebaseConfig = {
-    apiKey: "DEIN_API_KEY",
-    authDomain: "DEIN_PROJEKT.firebaseapp.com",
-    projectId: "DEIN_PROJEKT",
-    storageBucket: "DEIN_PROJEKT.appspot.com",
-    messagingSenderId: "...",
-    appId: "..."
+    apiKey: "AIzaSyA6gB4xskgydH3v6TtmvKpNgjlaSio_8IM",
+  authDomain: "verpflegungsstand.firebaseapp.com",
+  projectId: "verpflegungsstand",
+  storageBucket: "verpflegungsstand.firebasestorage.app",
+  messagingSenderId: "808275832434",
+  appId: "1:808275832434:web:5f476127a341aa4dfd5ceb"
   };
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -242,11 +242,11 @@ const { useState, useEffect, useMemo, useRef } = React;
 // anpassen — wer die index.html einsehen kann, sieht auch dieses Passwort,
 // es schützt also nur vor versehentlichem Ändern durch Kassenpersonal,
 // nicht vor absichtlichem Zugriff.
-const ADMIN_PASSWORT = "aenderMich123";
+const ADMIN_PASSWORT = "Kuckucksbaehnel2026";
 
 // Einfaches Passwort für den Zugriff auf den Kasse-Reiter (kein Konto, nur
 // ein gemeinsames Passwort fürs Kassenpersonal). Vor dem Einsatz anpassen.
-const KASSE_PASSWORT = "kinderfest";
+const KASSE_PASSWORT = "Kinderfest2026";
 
 const KATEGORIEN = [
   { id: "essen", label: "Essen" },
