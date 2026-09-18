@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Verkaufssystem KKB</title>
+<title>Küchenmonitor</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png" />
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#1B3A63" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="Verkaufssystem KKB" />
+<meta name="apple-mobile-web-app-title" content="Kuckucks-Bähnel" />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -214,12 +214,12 @@
   // Firebase-Konfiguration: eigene Projektdaten aus der Firebase-Konsole eintragen
   // (Project Settings -> General -> "Your apps" -> SDK setup and configuration)
   window.firebaseConfig = {
-    apiKey: "AIzaSyA6gB4xskgydH3v6TtmvKpNgjlaSio_8IM",
-  authDomain: "verpflegungsstand.firebaseapp.com",
-  projectId: "verpflegungsstand",
-  storageBucket: "verpflegungsstand.firebasestorage.app",
-  messagingSenderId: "808275832434",
-  appId: "1:808275832434:web:5f476127a341aa4dfd5ceb"
+    apiKey: "DEIN_API_KEY",
+    authDomain: "DEIN_PROJEKT.firebaseapp.com",
+    projectId: "DEIN_PROJEKT",
+    storageBucket: "DEIN_PROJEKT.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
   };
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -243,11 +243,11 @@ const { useState, useEffect, useMemo, useRef } = React;
 // anpassen — wer die index.html einsehen kann, sieht auch dieses Passwort,
 // es schützt also nur vor versehentlichem Ändern durch Kassenpersonal,
 // nicht vor absichtlichem Zugriff.
-const ADMIN_PASSWORT = "Kuckucksbaehnel2026";
+const ADMIN_PASSWORT = "aenderMich123";
 
 // Einfaches Passwort für den Zugriff auf den Kasse-Reiter (kein Konto, nur
 // ein gemeinsames Passwort fürs Kassenpersonal). Vor dem Einsatz anpassen.
-const KASSE_PASSWORT = "Kinderfest2026";
+const KASSE_PASSWORT = "kinderfest";
 
 const KATEGORIEN = [
   { id: "essen", label: "Essen" },
@@ -1195,17 +1195,13 @@ function Kasse() {
       });
       const hatEssen = items.some((i) => i.kategorie === "essen");
       const hatGetraenke = items.some((i) => i.kategorie === "alkoholfrei" || i.kategorie === "alkoholisch");
-      // Reine Getränkebestellungen (kein Essen dabei) werden direkt am
-      // Getränkestand ausgehändigt — keine Warteschlange, kein Monitor nötig.
-      const sofortFertig = !hatEssen;
 
       if (editingId) {
         const bestehend = bestellungen.find((b) => b.id === editingId);
         let essenStatus = bestehend.essenStatus;
         let ausgabeNummer = bestehend.ausgabeNummer;
-        let archiviert = bestehend.archiviert;
-        if (!hatEssen) { essenStatus = "kein"; ausgabeNummer = null; archiviert = true; }
-        else if (essenStatus === "kein") { essenStatus = "wartend"; ausgabeNummer = null; archiviert = false; }
+        if (!hatEssen) { essenStatus = "kein"; ausgabeNummer = null; }
+        else if (essenStatus === "kein") { essenStatus = "wartend"; ausgabeNummer = null; }
         else if (essenStatus === "fertig") { essenStatus = ausgabeNummer ? "inBearbeitung" : "wartend"; }
         const betrafLaufendeBearbeitung = bestehend.essenStatus === "inBearbeitung" || (bestehend.hatGetraenke && !bestehend.getraenkeFertig);
         await bestandAnpassen(bestehend.items, 1);
@@ -1213,11 +1209,11 @@ function Kasse() {
         await updateDoc(doc(window.__db, "bestellungen", editingId), {
           items, gesamtpreis: personalverpflegung ? 0 : totalCost, gesamtpreisVorRabatt: totalCostVorRabatt, rabattBetrag: rabattZahl,
           personalverpflegung, hatEssen, hatGetraenke,
-          getraenkeFertig: hatGetraenke ? sofortFertig : true,
-          getraenkeFertigZeitMs: sofortFertig ? Date.now() : (hatGetraenke ? null : bestehend.getraenkeFertigZeitMs || null),
-          getraenkeAbgeholt: hatGetraenke ? sofortFertig : false,
-          essenStatus, ausgabeNummer, archiviert, essenAbgeholt: false,
-          abschlussZeitMs: archiviert ? Date.now() : null,
+          getraenkeFertig: hatGetraenke ? false : true,
+          getraenkeFertigZeitMs: hatGetraenke ? null : (bestehend.getraenkeFertigZeitMs || null),
+          getraenkeAbgeholt: false,
+          essenStatus, ausgabeNummer, archiviert: false, essenAbgeholt: false,
+          abschlussZeitMs: null,
           hinweis: hinweis.trim(), zahlungsart: "bar",
           ...(betrafLaufendeBearbeitung ? { bearbeitungsHinweisMs: Date.now() } : {}),
         });
@@ -1231,17 +1227,17 @@ function Kasse() {
           rueckgeld: !personalverpflegung ? rueckgeld : null,
           zahlungsart: "bar",
           hinweis: hinweis.trim(), hatEssen, hatGetraenke,
-          getraenkeFertig: hatGetraenke ? sofortFertig : true,
-          getraenkeFertigZeitMs: sofortFertig ? Date.now() : null,
+          getraenkeFertig: hatGetraenke ? false : true,
+          getraenkeFertigZeitMs: null,
           essenStatus: hatEssen ? "wartend" : "kein",
           essenInBearbeitungZeitMs: null,
           essenFertigZeitMs: null,
           essenAbgeholt: false,
-          getraenkeAbgeholt: sofortFertig,
+          getraenkeAbgeholt: false,
           viaHotkeyMs: null,
           ausgabeNummer: null,
-          storniert: false, archiviert: sofortFertig,
-          abschlussZeitMs: sofortFertig ? Date.now() : null,
+          storniert: false, archiviert: false,
+          abschlussZeitMs: null,
           erstelltAm: serverTimestamp(), erstelltAmMs: Date.now(),
         });
         await bestandAnpassen(items, -1);
@@ -1504,10 +1500,7 @@ function MonitorGetraenke() {
   }, [bestellungen]);
 
   const markFertig = async (b) => {
-    await updateUndPruefeArchivierung(b, {
-      getraenkeFertig: true, getraenkeFertigZeitMs: Date.now(),
-      ...(!b.hatEssen ? { getraenkeAbgeholt: true } : {}),
-    });
+    await updateUndPruefeArchivierung(b, { getraenkeFertig: true, getraenkeFertigZeitMs: Date.now() });
   };
   const markGetraenkeAbgeholt = async (b) => {
     await updateUndPruefeArchivierung(b, { getraenkeAbgeholt: true });
