@@ -1,6 +1,6 @@
 {
   "name": "Kuckucks-Bähnel Essens/Getränke Stand",
-  "short_name": "Kuckucks-Bähnel",
+  "short_name": "Verpflegungsstand",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
