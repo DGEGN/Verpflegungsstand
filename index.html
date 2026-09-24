@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Verkaufssystem KKB 😏</title>
+<title>Küchenmonitor</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png" />
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#1B3A63" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="Verkaufssystem KKB" />
+<meta name="apple-mobile-web-app-title" content="Kuckucks-Bähnel" />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -160,6 +160,16 @@
   .ausgabe-tile.geschlossen { opacity: 0.35; align-items: center; justify-content: center; text-align: center; }
   .banner-stack { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 0; max-width: 1200px; margin: 0 auto; }
   .update-banner { background: var(--rust); color: #fff; padding: 22px 28px; border-radius: 12px; font-size: 26px; font-weight: 800; box-shadow: 0 6px 18px rgba(0,0,0,0.3); text-align: center; }
+  .update-banner.storno-banner { background: #7A1418; }
+  .storniert-tile { position: relative; opacity: 0.8; }
+  .storniert-tile .storno-stempel {
+    position: absolute; top: 42%; left: -12%; width: 124%;
+    transform: translateY(-50%) rotate(-8deg);
+    background: var(--rust); color: #fff; text-align: center;
+    font-weight: 800; font-size: 1.15em; letter-spacing: 0.08em;
+    padding: 7px 0; box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+    z-index: 5; pointer-events: none;
+  }
   .ausgabe-tile-head { display: flex; justify-content: space-between; align-items: center; }
   .ausgabe-tile-nr { font-size: 15px; color: var(--mon-muted); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
   .ausgabe-toggle { background: var(--mon-border); border: none; color: var(--mon-muted); border-radius: 8px; padding: 5px 10px; font-size: 11px; cursor: pointer; font-weight: 600; }
@@ -200,6 +210,7 @@
   .status-wartend { background: var(--mon-border); color: var(--mon-muted); }
   .status-inBearbeitung { background: var(--mon-border); color: var(--led-amber); }
   .status-fertig { background: var(--mon-border); color: var(--led-green); }
+  .status-storniert { background: var(--rust); color: #fff; }
 </style>
 </head>
 <body>
@@ -277,7 +288,7 @@ function useTheme() {
 function ThemeToggle({ dunkel, setDunkel }) {
   return (
     <button type="button" className="theme-toggle" onClick={() => setDunkel((v) => !v)} title="Hell/Dunkel umschalten">
-      {dunkel ? "☀️ Hell" : "🌙 Dunkel"}
+      {dunkel ? "Hell" : "Dunkel"}
     </button>
   );
 }
@@ -299,7 +310,7 @@ function FullscreenToggle() {
   const [voll, umschalten] = useFullscreen();
   return (
     <button type="button" className="theme-toggle" onClick={umschalten} title="Vollbild umschalten">
-      {voll ? "⤢ Vollbild verlassen" : "⛶ Vollbild"}
+      {voll ? "Vollbild verlassen" : "Vollbild"}
     </button>
   );
 }
@@ -625,6 +636,58 @@ function erzeugeQrSvg(text, zellgroesse) {
 }
 
 // Baut den Beleg-Text (für QR-Code und Anzeige) aus einer Bestellung.
+// Eine stornierte Bestellung bleibt für 10 Sekunden nach der Stornierung
+// noch sichtbar (durchgestrichen), statt sofort von den Monitoren zu
+// verschwinden — auf allen Geräten synchron, weil der Zeitstempel aus
+// Firestore kommt statt aus einer lokalen Uhr.
+const STORNO_ANZEIGEDAUER_MS = 10000;
+function kuerzlichStorniert(b, now) {
+  return !!(b.storniert && b.storniertZeitMs && now - b.storniertZeitMs < STORNO_ANZEIGEDAUER_MS);
+}
+
+// Abspielen der echten Hinweistöne (MP3-Dateien, müssen neben der index.html
+// liegen). Werden nur abgespielt, wenn der jeweilige Ton nicht stummgeschaltet ist.
+function spieleDatei(datei) {
+  try {
+    new Audio(datei).play().catch(() => {});
+  } catch (e) {}
+}
+function spieleStornoTon() { spieleDatei("storno.mp3"); }
+function spieleAenderungTon() { spieleDatei("bestelleanderung.mp3"); }
+function spieleNeueBestellungTon() { spieleDatei("neue-bestellung.mp3"); }
+
+// Stumm-Einstellungen pro Gerät (localStorage) — je einzeln für Storno-,
+// Änderungs- und Neue-Bestellung-Ton.
+function useSoundEinstellungen() {
+  const [stummStorno, setStummStorno] = useState(() => localStorage.getItem("kuechenmonitor-stumm-storno") === "1");
+  const [stummAenderung, setStummAenderung] = useState(() => localStorage.getItem("kuechenmonitor-stumm-aenderung") === "1");
+  const [stummNeu, setStummNeu] = useState(() => localStorage.getItem("kuechenmonitor-stumm-neu") === "1");
+  useEffect(() => { localStorage.setItem("kuechenmonitor-stumm-storno", stummStorno ? "1" : "0"); }, [stummStorno]);
+  useEffect(() => { localStorage.setItem("kuechenmonitor-stumm-aenderung", stummAenderung ? "1" : "0"); }, [stummAenderung]);
+  useEffect(() => { localStorage.setItem("kuechenmonitor-stumm-neu", stummNeu ? "1" : "0"); }, [stummNeu]);
+  return { stummStorno, setStummStorno, stummAenderung, setStummAenderung, stummNeu, setStummNeu };
+}
+
+function SoundToggleButtons({ stummStorno, setStummStorno, stummAenderung, setStummAenderung, stummNeu, setStummNeu }) {
+  const alleStumm = stummStorno && stummAenderung && stummNeu;
+  return (
+    <>
+      <button className={"hotkey-btn" + (stummNeu ? " aktiv-warnung" : "")} onClick={() => setStummNeu((v) => !v)}>
+        Ton Neue Bestellung: {stummNeu ? "aus" : "an"}
+      </button>
+      <button className={"hotkey-btn" + (stummStorno ? " aktiv-warnung" : "")} onClick={() => setStummStorno((v) => !v)}>
+        Ton Storno: {stummStorno ? "aus" : "an"}
+      </button>
+      <button className={"hotkey-btn" + (stummAenderung ? " aktiv-warnung" : "")} onClick={() => setStummAenderung((v) => !v)}>
+        Ton Änderung: {stummAenderung ? "aus" : "an"}
+      </button>
+      <button className="hotkey-btn" onClick={() => { const neu = !alleStumm; setStummStorno(neu); setStummAenderung(neu); setStummNeu(neu); }}>
+        {alleStumm ? "Alle Töne an" : "Alle Töne aus"}
+      </button>
+    </>
+  );
+}
+
 function belegText(b) {
   const zeilen = [
     "Kuckucks-Bähnel",
@@ -1267,7 +1330,8 @@ function Kasse() {
 
   const stornieren = async (b) => {
     const { doc, updateDoc } = window.__fs;
-    await updateDoc(doc(window.__db, "bestellungen", b.id), { storniert: true });
+    const jetzt = Date.now();
+    await updateDoc(doc(window.__db, "bestellungen", b.id), { storniert: true, storniertZeitMs: jetzt, stornoBannerMs: jetzt });
     await bestandAnpassen(b.items, 1);
     setStornoNummer(b.nummer);
     if (editingId === b.id) resetForm();
@@ -1460,13 +1524,36 @@ function Kasse() {
 function MonitorGetraenke() {
   const { bestellungen } = useBestellungen();
   const einstellungen = useEinstellungen();
+  const { stummStorno, setStummStorno, stummAenderung, setStummAenderung, stummNeu, setStummNeu } = useSoundEinstellungen();
   const [now, setNow] = useState(Date.now());
   const [banner, setBanner] = useState([]);
   const gesehenRef = useRef({});
+  const stornoGesehenRef = useRef({});
+  const neuInitRef = useRef(false);
+  const neuBekannteIdsRef = useRef(new Set());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Ton bei neu eingegangenen Getränke-Bestellungen (bzw. Mix-Bestellungen).
+  // Beim allerersten Laden wird nur der Stand gemerkt, nicht abgespielt.
+  useEffect(() => {
+    const relevante = bestellungen.filter((b) => b.hatGetraenke);
+    if (!neuInitRef.current) {
+      relevante.forEach((b) => neuBekannteIdsRef.current.add(b.id));
+      neuInitRef.current = true;
+      return;
+    }
+    let neu = false;
+    relevante.forEach((b) => {
+      if (!neuBekannteIdsRef.current.has(b.id)) {
+        neuBekannteIdsRef.current.add(b.id);
+        neu = true;
+      }
+    });
+    if (neu && !stummNeu) spieleNeueBestellungTon();
+  }, [bestellungen, stummNeu]);
 
   useEffect(() => {
     bestellungen.forEach((b) => {
@@ -1474,11 +1561,25 @@ function MonitorGetraenke() {
       if (gesehenRef.current[b.id] === b.bearbeitungsHinweisMs) return;
       if (Date.now() - b.bearbeitungsHinweisMs > 10000) { gesehenRef.current[b.id] = b.bearbeitungsHinweisMs; return; }
       gesehenRef.current[b.id] = b.bearbeitungsHinweisMs;
-      const bannerId = b.id + "-" + b.bearbeitungsHinweisMs;
-      setBanner((prev) => [...prev, { id: bannerId, nummer: b.nummer }]);
+      const bannerId = "a-" + b.id + "-" + b.bearbeitungsHinweisMs;
+      setBanner((prev) => [...prev, { id: bannerId, text: "Bestellung " + b.nummer + " wurde aktualisiert" }]);
+      if (!stummAenderung) spieleAenderungTon();
       setTimeout(() => setBanner((prev) => prev.filter((x) => x.id !== bannerId)), 10000);
     });
-  }, [bestellungen]);
+  }, [bestellungen, stummAenderung]);
+
+  useEffect(() => {
+    bestellungen.forEach((b) => {
+      if (!b.stornoBannerMs) return;
+      if (stornoGesehenRef.current[b.id] === b.stornoBannerMs) return;
+      if (Date.now() - b.stornoBannerMs > 10000) { stornoGesehenRef.current[b.id] = b.stornoBannerMs; return; }
+      stornoGesehenRef.current[b.id] = b.stornoBannerMs;
+      const bannerId = "s-" + b.id + "-" + b.stornoBannerMs;
+      setBanner((prev) => [...prev, { id: bannerId, text: "Bestellung " + b.nummer + " storniert", storno: true }]);
+      if (!stummStorno) spieleStornoTon();
+      setTimeout(() => setBanner((prev) => prev.filter((x) => x.id !== bannerId)), 10000);
+    });
+  }, [bestellungen, stummStorno]);
 
   const offen = useMemo(() => {
     return bestellungen
@@ -1499,6 +1600,12 @@ function MonitorGetraenke() {
       .sort((a, b) => (a.getraenkeFertigZeitMs || 0) - (b.getraenkeFertigZeitMs || 0));
   }, [bestellungen]);
 
+  // Kürzlich stornierte Getränkebestellungen bleiben für 10s noch sichtbar
+  // (durchgestrichen), statt sofort zu verschwinden.
+  const kuerzlichStorniertListe = useMemo(() => {
+    return bestellungen.filter((b) => b.hatGetraenke && kuerzlichStorniert(b, now));
+  }, [bestellungen, now]);
+
   const markFertig = async (b) => {
     await updateUndPruefeArchivierung(b, { getraenkeFertig: true, getraenkeFertigZeitMs: Date.now() });
   };
@@ -1512,7 +1619,7 @@ function MonitorGetraenke() {
       {banner.length > 0 && (
         <div className="banner-stack">
           {banner.map((x) => (
-            <div className="update-banner" key={x.id}>Bestellung {x.nummer} wurde aktualisiert</div>
+            <div className={"update-banner" + (x.storno ? " storno-banner" : "")} key={x.id}>{x.text}</div>
           ))}
         </div>
       )}
@@ -1525,10 +1632,11 @@ function MonitorGetraenke() {
               onClick={() => setEinstellung({ getraenkeBesetzt: !einstellungen.getraenkeBesetzt })}>
               {einstellungen.getraenkeBesetzt ? "Ausgabe nicht besetzt melden" : "Ausgabe wieder besetzt melden"}
             </button>
+            <SoundToggleButtons stummStorno={stummStorno} setStummStorno={setStummStorno} stummAenderung={stummAenderung} setStummAenderung={setStummAenderung} stummNeu={stummNeu} setStummNeu={setStummNeu} />
             <FullscreenToggle />
           </div>
         </div>
-        {offen.length === 0 && wartetAufAbholung.length === 0 && <div className="empty">Keine offenen Bestellungen</div>}
+        {offen.length === 0 && wartetAufAbholung.length === 0 && kuerzlichStorniertListe.length === 0 && <div className="empty">Keine offenen Bestellungen</div>}
         <div className="ausgaben-grid">
           {offen.map((b) => {
             const elapsed = now - (b.erstelltAmMs || Date.now());
@@ -1571,6 +1679,19 @@ function MonitorGetraenke() {
               <button className="ready-btn sage" onClick={() => markGetraenkeAbgeholt(b)}>Abgeholt</button>
             </div>
           ))}
+          {kuerzlichStorniertListe.map((b) => (
+            <div className="ausgabe-tile belegt storniert-tile" key={b.id}>
+              <div className="storno-stempel">STORNIERT</div>
+              <div className="ausgabe-tile-head">
+                <span className="ausgabe-tile-num">Nr. {b.nummer}</span>
+              </div>
+              <ul className="t-items">
+                {b.items.filter((i) => i.kategorie === "alkoholfrei" || i.kategorie === "alkoholisch").map((i, idx) => (
+                  <li key={idx}><b>{i.menge}×</b>{i.name}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -1581,16 +1702,42 @@ function MonitorEssen() {
   const { bestellungen, ready } = useBestellungen();
   const einstellungen = useEinstellungen();
   useAusgabenZuweisung(bestellungen, ready, einstellungen);
+  const { stummStorno, setStummStorno, stummAenderung, setStummAenderung, stummNeu, setStummNeu } = useSoundEinstellungen();
   const [now, setNow] = useState(Date.now());
   const [warnung, setWarnung] = useState(null);
   const [banner, setBanner] = useState([]);
   const gesehenRef = useRef({});
+  const stornoGesehenRef = useRef({});
+  const neuInitRef = useRef(false);
+  const neuBekannteIdsRef = useRef(new Set());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  const aktiv = useMemo(() => bestellungen.filter((b) => istAktiv(b) && b.hatEssen && b.essenStatus !== "kein" && !b.essenAbgeholt), [bestellungen]);
+  // Ton bei neu eingegangenen Essens-Bestellungen (bzw. Mix-Bestellungen).
+  // Beim allerersten Laden wird nur der Stand gemerkt, nicht abgespielt.
+  useEffect(() => {
+    const relevante = bestellungen.filter((b) => b.hatEssen);
+    if (!neuInitRef.current) {
+      relevante.forEach((b) => neuBekannteIdsRef.current.add(b.id));
+      neuInitRef.current = true;
+      return;
+    }
+    let neu = false;
+    relevante.forEach((b) => {
+      if (!neuBekannteIdsRef.current.has(b.id)) {
+        neuBekannteIdsRef.current.add(b.id);
+        neu = true;
+      }
+    });
+    if (neu && !stummNeu) spieleNeueBestellungTon();
+  }, [bestellungen, stummNeu]);
+
+  const aktiv = useMemo(
+    () => bestellungen.filter((b) => b.hatEssen && b.essenStatus !== "kein" && !b.essenAbgeholt && (istAktiv(b) || kuerzlichStorniert(b, now))),
+    [bestellungen, now]
+  );
 
   // Banner-Hinweis: wenn eine Bestellung im Status "in Bearbeitung" nachträglich
   // von der Kasse geändert wurde, kurz auffällig anzeigen, damit das Essensteam
@@ -1601,11 +1748,26 @@ function MonitorEssen() {
       if (gesehenRef.current[b.id] === b.bearbeitungsHinweisMs) return;
       if (Date.now() - b.bearbeitungsHinweisMs > 10000) { gesehenRef.current[b.id] = b.bearbeitungsHinweisMs; return; }
       gesehenRef.current[b.id] = b.bearbeitungsHinweisMs;
-      const bannerId = b.id + "-" + b.bearbeitungsHinweisMs;
-      setBanner((prev) => [...prev, { id: bannerId, nummer: b.nummer }]);
+      const bannerId = "a-" + b.id + "-" + b.bearbeitungsHinweisMs;
+      setBanner((prev) => [...prev, { id: bannerId, text: "Bestellung " + b.nummer + " wurde aktualisiert" }]);
+      if (!stummAenderung) spieleAenderungTon();
       setTimeout(() => setBanner((prev) => prev.filter((x) => x.id !== bannerId)), 10000);
     });
-  }, [bestellungen]);
+  }, [bestellungen, stummAenderung]);
+
+  // Banner-Hinweis bei Stornierung.
+  useEffect(() => {
+    bestellungen.forEach((b) => {
+      if (!b.stornoBannerMs) return;
+      if (stornoGesehenRef.current[b.id] === b.stornoBannerMs) return;
+      if (Date.now() - b.stornoBannerMs > 10000) { stornoGesehenRef.current[b.id] = b.stornoBannerMs; return; }
+      stornoGesehenRef.current[b.id] = b.stornoBannerMs;
+      const bannerId = "s-" + b.id + "-" + b.stornoBannerMs;
+      setBanner((prev) => [...prev, { id: bannerId, text: "Bestellung " + b.nummer + " storniert", storno: true }]);
+      if (!stummStorno) spieleStornoTon();
+      setTimeout(() => setBanner((prev) => prev.filter((x) => x.id !== bannerId)), 10000);
+    });
+  }, [bestellungen, stummStorno]);
 
   const wartendeListe = useMemo(() =>
     aktiv.filter((b) => b.essenStatus === "wartend").sort((a, b) => (a.erstelltAmMs || 0) - (b.erstelltAmMs || 0)),
@@ -1648,7 +1810,7 @@ function MonitorEssen() {
       {banner.length > 0 && (
         <div className="banner-stack">
           {banner.map((x) => (
-            <div className="update-banner" key={x.id}>Bestellung {x.nummer} wurde aktualisiert</div>
+            <div className={"update-banner" + (x.storno ? " storno-banner" : "")} key={x.id}>{x.text}</div>
           ))}
         </div>
       )}
@@ -1661,6 +1823,7 @@ function MonitorEssen() {
               onClick={() => setEinstellung({ essenBesetzt: !einstellungen.essenBesetzt })}>
               {einstellungen.essenBesetzt ? "Ausgabe nicht besetzt melden" : "Ausgabe wieder besetzt melden"}
             </button>
+            <SoundToggleButtons stummStorno={stummStorno} setStummStorno={setStummStorno} stummAenderung={stummAenderung} setStummAenderung={setStummAenderung} stummNeu={stummNeu} setStummNeu={setStummNeu} />
             <FullscreenToggle />
           </div>
         </div>
@@ -1685,6 +1848,7 @@ function MonitorEssen() {
                 </div>
               );
             }
+            const storniert = kuerzlichStorniert(order, now);
             const istFertig = order.essenStatus === "fertig";
             // Timer zeigt die Zeit im aktuellen Status, nicht seit Bestelleingang —
             // startet also bei jedem Statuswechsel wieder bei 0.
@@ -1694,7 +1858,8 @@ function MonitorEssen() {
             const elapsed = now - statusStart;
             const cls = istFertig ? "" : zeitKlasse(elapsed);
             return (
-              <div className={"ausgabe-tile belegt" + (istFertig ? " fertig-gruen" : cls ? " " + cls : "")} key={n}>
+              <div className={"ausgabe-tile belegt" + (istFertig ? " fertig-gruen" : cls ? " " + cls : "") + (storniert ? " storniert-tile" : "")} key={n}>
+                {storniert && <div className="storno-stempel">STORNIERT</div>}
                 <div className="ausgabe-tile-head">
                   <span className="ausgabe-tile-nr">Ausgabe {n}{!offen ? " (schließt nach Abholung)" : ""}</span>
                   <button className={"ausgabe-toggle" + (offen ? " on" : "")} onClick={() => toggleAusgabe(n)}>{offen ? "Offen" : "Geschlossen"}</button>
@@ -1710,10 +1875,10 @@ function MonitorEssen() {
                   ))}
                 </ul>
                 {order.hinweis && <p className="t-hinweis">{order.hinweis}</p>}
-                {order.essenStatus === "inBearbeitung" && (
+                {!storniert && order.essenStatus === "inBearbeitung" && (
                   <button className="ready-btn" onClick={() => markFertig(order)}>Als fertig markieren</button>
                 )}
-                {order.essenStatus === "fertig" && (
+                {!storniert && order.essenStatus === "fertig" && (
                   <button className="ready-btn sage" onClick={() => markAbgeholt(order)}>Abgeholt</button>
                 )}
               </div>
@@ -1726,9 +1891,11 @@ function MonitorEssen() {
             <h2 style={{ fontSize: 14, color: "var(--mon-muted)", margin: "4px 0 10px" }}>Warteschlange ({wartendeListe.length})</h2>
             <div className="queue-row">
               {wartendeListe.map((b) => {
+                const storniert = kuerzlichStorniert(b, now);
                 const elapsed = now - (b.erstelltAmMs || Date.now());
                 return (
-                  <div className="queue-tile" key={b.id}>
+                  <div className={"queue-tile" + (storniert ? " storniert-tile" : "")} key={b.id}>
+                    {storniert && <div className="storno-stempel">STORNIERT</div>}
                     <div className="q-nr">Nr. {b.nummer}</div>
                     <div className="q-time">wartet seit {formatElapsed(elapsed)}</div>
                     {b.personalverpflegung && <span className="personal-badge">Personalbestellung</span>}
@@ -1738,7 +1905,7 @@ function MonitorEssen() {
                       ))}
                     </ul>
                     {b.hinweis && <p className="t-hinweis" style={{ fontSize: 11 }}>{b.hinweis}</p>}
-                    <button className="ready-btn sage klein" onClick={() => markFertigUndAbgeholt(b)}>Fertig &amp; abgeholt</button>
+                    {!storniert && <button className="ready-btn sage klein" onClick={() => markFertigUndAbgeholt(b)}>Fertig &amp; abgeholt</button>}
                   </div>
                 );
               })}
