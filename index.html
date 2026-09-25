@@ -220,11 +220,12 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://unpkg.com/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 <script type="module">
   // Firebase-Konfiguration: eigene Projektdaten aus der Firebase-Konsole eintragen
   // (Project Settings -> General -> "Your apps" -> SDK setup and configuration)
-  window.firebaseConfig = {
+ window.firebaseConfig = {
     apiKey: "AIzaSyA6gB4xskgydH3v6TtmvKpNgjlaSio_8IM",
   authDomain: "verpflegungsstand.firebaseapp.com",
   projectId: "verpflegungsstand",
@@ -381,6 +382,10 @@ async function updateUndPruefeArchivierung(bestellung, patch) {
 function formatUhrzeit(ms) {
   if (!ms) return null;
   return new Date(ms).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+function formatUhrzeitDatum(ms) {
+  if (!ms) return "–";
+  return new Date(ms).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 function formatZeitstempel(b) {
   const teile = ["Bestellt: " + (formatUhrzeit(b.erstelltAmMs) || "–")];
@@ -566,12 +571,13 @@ async function kassenschnittDurchfuehren(bestellungen, kassenbuchBestand, zuruec
     proKategorie[i.kategorie] = (proKategorie[i.kategorie] || 0) + i.preis * i.menge;
   }));
   const jetzt = Date.now();
+  const anzahlStorniert = bestellungen.filter((b) => b.storniert && (b.erstelltAmMs || 0) >= zurueckgesetztAm).length;
   await addDoc(collection(window.__db, "kassenschnitte"), {
     erstelltAmMs: jetzt,
     zeitraumVonMs: zurueckgesetztAm,
     zeitraumBisMs: jetzt,
     anzahlBestellungen: relevant.length,
-    anzahlStorniert: bestellungen.filter((b) => b.storniert && (b.erstelltAmMs || 0) >= zurueckgesetztAm).length,
+    anzahlStorniert,
     bareinnahmen: bar.reduce((s, b) => s + b.gesamtpreis, 0),
     karteneinnahmen: karte.reduce((s, b) => s + b.gesamtpreis, 0),
     proKategorie,
@@ -580,6 +586,86 @@ async function kassenschnittDurchfuehren(bestellungen, kassenbuchBestand, zuruec
   await setDoc(doc(window.__db, "einstellungen", "kassenbuch"), { zurueckgesetztAm: jetzt }, { merge: true });
   await setDoc(doc(window.__db, "einstellungen", "verkaufstag"), { tagStartMs: jetzt, tagLabel: heutigesLabel() }, { merge: true });
   await setDoc(doc(window.__db, "einstellungen", "zaehler"), { naechsteNummer: 1 }, { merge: true });
+  return {
+    relevant, bar, karte, proKategorie, jetzt, zurueckgesetztAm, kassenbuchBestand, anzahlStorniert,
+    bareinnahmen: bar.reduce((s, b) => s + b.gesamtpreis, 0),
+    karteneinnahmen: karte.reduce((s, b) => s + b.gesamtpreis, 0),
+  };
+}
+
+// Erstellt aus den Kassenschnitt-Daten eine PDF-Auflistung (Bestellungen,
+// Einnahmen, Kategorien) und löst den Download aus.
+function erzeugeKassenschnittPdf(daten) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: "mm", format: "a4" });
+  const seitenhoehe = pdf.internal.pageSize.getHeight();
+  const linksX = 14;
+  let y = 18;
+
+  const neueSeiteFallsNoetig = (bedarf) => {
+    if (y + bedarf > seitenhoehe - 14) {
+      pdf.addPage();
+      y = 18;
+    }
+  };
+
+  pdf.setFontSize(16);
+  pdf.text("Kassenschnitt — Kuckucks-Bähnel", linksX, y);
+  y += 8;
+  pdf.setFontSize(10);
+  pdf.text("Zeitraum: " + formatUhrzeitDatum(daten.zurueckgesetztAm) + " – " + formatUhrzeitDatum(daten.jetzt), linksX, y);
+  y += 8;
+
+  pdf.setFontSize(12);
+  pdf.text("Zusammenfassung", linksX, y);
+  y += 6;
+  pdf.setFontSize(10);
+  const zeilen = [
+    "Bestellungen: " + daten.relevant.length + " (storniert: " + daten.anzahlStorniert + ")",
+    "Bareinnahmen: " + daten.bareinnahmen.toFixed(2) + " €",
+    "Kartenzahlungen: " + daten.karteneinnahmen.toFixed(2) + " €",
+    "Kassenbuch-Bestand bei Abschluss: " + daten.kassenbuchBestand.toFixed(2) + " €",
+  ];
+  zeilen.forEach((z) => { pdf.text(z, linksX, y); y += 5.5; });
+  y += 2;
+  Object.entries(daten.proKategorie).forEach(([kat, wert]) => {
+    pdf.text(katLabel(kat) + ": " + wert.toFixed(2) + " €", linksX, y);
+    y += 5.5;
+  });
+  y += 6;
+
+  pdf.setFontSize(12);
+  pdf.text("Bestellungen", linksX, y);
+  y += 7;
+  pdf.setFontSize(9);
+  pdf.setFont(undefined, "bold");
+  pdf.text("Nr.", linksX, y);
+  pdf.text("Zeit", linksX + 14, y);
+  pdf.text("Zahlung", linksX + 34, y);
+  pdf.text("Artikel", linksX + 54, y);
+  pdf.text("Betrag", 196, y, { align: "right" });
+  pdf.setFont(undefined, "normal");
+  y += 2;
+  pdf.line(linksX, y, 196, y);
+  y += 4.5;
+
+  daten.relevant
+    .slice()
+    .sort((a, b) => (a.erstelltAmMs || 0) - (b.erstelltAmMs || 0))
+    .forEach((b) => {
+      const artikelText = b.items.map((i) => i.menge + "x " + i.name).join(", ");
+      const artikelZeilen = pdf.splitTextToSize(artikelText, 140);
+      neueSeiteFallsNoetig(artikelZeilen.length * 4.5 + 2);
+      pdf.text(String(b.nummer), linksX, y);
+      pdf.text(formatUhrzeit(b.erstelltAmMs) || "–", linksX + 14, y);
+      pdf.text(b.zahlungsart === "karte" ? "Karte" : "Bar", linksX + 34, y);
+      pdf.text(artikelZeilen, linksX + 54, y);
+      pdf.text(b.gesamtpreis.toFixed(2) + " €", 196, y, { align: "right" });
+      y += artikelZeilen.length * 4.5 + 1.5;
+    });
+
+  const dateiname = "kassenschnitt-" + new Date(daten.jetzt).toISOString().slice(0, 16).replace(/[:T]/g, "-") + ".pdf";
+  pdf.save(dateiname);
 }
 
 function useKassenschnitte() {
@@ -1013,7 +1099,8 @@ function Kassenbuch() {
     if (!window.confirm("Kassenschnitt durchführen? Der bisherige Verkaufszeitraum wird als Bericht gespeichert und abgeschlossen. Kassenbuch, Chronik und Bestellnummern beginnen danach neu bei 0 bzw. 1.")) return;
     setSchnittLaeuft(true);
     try {
-      await kassenschnittDurchfuehren(bestellungen, bestand, zurueckgesetztAm);
+      const daten = await kassenschnittDurchfuehren(bestellungen, bestand, zurueckgesetztAm);
+      erzeugeKassenschnittPdf(daten);
     } finally {
       setSchnittLaeuft(false);
     }
@@ -1556,7 +1643,7 @@ function MonitorGetraenke() {
   }, [bestellungen, stummNeu]);
 
   useEffect(() => {
-    bestellungen.forEach((b) => {
+    bestellungen.filter((b) => b.hatGetraenke).forEach((b) => {
       if (!b.bearbeitungsHinweisMs) return;
       if (gesehenRef.current[b.id] === b.bearbeitungsHinweisMs) return;
       if (Date.now() - b.bearbeitungsHinweisMs > 10000) { gesehenRef.current[b.id] = b.bearbeitungsHinweisMs; return; }
@@ -1569,7 +1656,7 @@ function MonitorGetraenke() {
   }, [bestellungen, stummAenderung]);
 
   useEffect(() => {
-    bestellungen.forEach((b) => {
+    bestellungen.filter((b) => b.hatGetraenke).forEach((b) => {
       if (!b.stornoBannerMs) return;
       if (stornoGesehenRef.current[b.id] === b.stornoBannerMs) return;
       if (Date.now() - b.stornoBannerMs > 10000) { stornoGesehenRef.current[b.id] = b.stornoBannerMs; return; }
@@ -1592,25 +1679,18 @@ function MonitorGetraenke() {
       });
   }, [bestellungen]);
 
-  // Bei Mix-Bestellungen (Essen + Getränke) sind die Getränke evtl. schon
-  // fertig, warten aber noch auf die Abholung am Getränkestand.
-  const wartetAufAbholung = useMemo(() => {
-    return bestellungen
-      .filter((b) => istAktiv(b) && b.hatGetraenke && b.getraenkeFertig && !b.getraenkeAbgeholt)
-      .sort((a, b) => (a.getraenkeFertigZeitMs || 0) - (b.getraenkeFertigZeitMs || 0));
-  }, [bestellungen]);
-
   // Kürzlich stornierte Getränkebestellungen bleiben für 10s noch sichtbar
   // (durchgestrichen), statt sofort zu verschwinden.
   const kuerzlichStorniertListe = useMemo(() => {
     return bestellungen.filter((b) => b.hatGetraenke && kuerzlichStorniert(b, now));
   }, [bestellungen, now]);
 
+  // Bei Mix-Bestellungen liefert das Getränketeam die Getränke selbst zur
+  // Essensausgabe — es gibt dort keinen eigenen "Abgeholt"-Schritt mehr.
+  // Bei reinen Getränkebestellungen schließt "fertig" die Bestellung direkt
+  // vollständig ab.
   const markFertig = async (b) => {
-    await updateUndPruefeArchivierung(b, { getraenkeFertig: true, getraenkeFertigZeitMs: Date.now() });
-  };
-  const markGetraenkeAbgeholt = async (b) => {
-    await updateUndPruefeArchivierung(b, { getraenkeAbgeholt: true });
+    await updateUndPruefeArchivierung(b, { getraenkeFertig: true, getraenkeFertigZeitMs: Date.now(), getraenkeAbgeholt: true });
   };
 
   return (
@@ -1636,7 +1716,7 @@ function MonitorGetraenke() {
             <FullscreenToggle />
           </div>
         </div>
-        {offen.length === 0 && wartetAufAbholung.length === 0 && kuerzlichStorniertListe.length === 0 && <div className="empty">Keine offenen Bestellungen</div>}
+        {offen.length === 0 && kuerzlichStorniertListe.length === 0 && <div className="empty">Keine offenen Bestellungen</div>}
         <div className="ausgaben-grid">
           {offen.map((b) => {
             const elapsed = now - (b.erstelltAmMs || Date.now());
@@ -1649,7 +1729,7 @@ function MonitorGetraenke() {
                 </div>
                 {b.hatEssen && (b.ausgabeNummer
                   ? <span className="ausgabe-badge">Ausgabe {b.ausgabeNummer}</span>
-                  : <span className="ausgabe-wait">wartet auf Ausgabe</span>)}
+                  : <span className="ausgabe-wait">wartet auf freie Ausgabe</span>)}
                 {b.personalverpflegung && <span className="personal-badge">Personalbestellung</span>}
                 <ul className="t-items">
                   {b.items.filter((i) => i.kategorie === "alkoholfrei" || i.kategorie === "alkoholisch").map((i, idx) => (
@@ -1661,24 +1741,6 @@ function MonitorGetraenke() {
               </div>
             );
           })}
-          {wartetAufAbholung.map((b) => (
-            <div className="ausgabe-tile belegt fertig-gruen" key={b.id}>
-              <div className="ausgabe-tile-head">
-                <span className="ausgabe-tile-num">Nr. {b.nummer}</span>
-              </div>
-              {b.hatEssen && (b.ausgabeNummer
-                ? <span className="ausgabe-badge">Ausgabe {b.ausgabeNummer}</span>
-                : <span className="ausgabe-wait">wartet auf Ausgabe</span>)}
-              {b.personalverpflegung && <span className="personal-badge">Personalbestellung</span>}
-              <ul className="t-items">
-                {b.items.filter((i) => i.kategorie === "alkoholfrei" || i.kategorie === "alkoholisch").map((i, idx) => (
-                  <li key={idx}><b>{i.menge}×</b>{i.name}</li>
-                ))}
-              </ul>
-              {b.hinweis && <p className="t-hinweis">{b.hinweis}</p>}
-              <button className="ready-btn sage" onClick={() => markGetraenkeAbgeholt(b)}>Abgeholt</button>
-            </div>
-          ))}
           {kuerzlichStorniertListe.map((b) => (
             <div className="ausgabe-tile belegt storniert-tile" key={b.id}>
               <div className="storno-stempel">STORNIERT</div>
@@ -1743,7 +1805,7 @@ function MonitorEssen() {
   // von der Kasse geändert wurde, kurz auffällig anzeigen, damit das Essensteam
   // die Änderung an einer bereits laufenden Bestellung mitbekommt.
   useEffect(() => {
-    bestellungen.forEach((b) => {
+    bestellungen.filter((b) => b.hatEssen).forEach((b) => {
       if (!b.bearbeitungsHinweisMs) return;
       if (gesehenRef.current[b.id] === b.bearbeitungsHinweisMs) return;
       if (Date.now() - b.bearbeitungsHinweisMs > 10000) { gesehenRef.current[b.id] = b.bearbeitungsHinweisMs; return; }
@@ -1757,7 +1819,7 @@ function MonitorEssen() {
 
   // Banner-Hinweis bei Stornierung.
   useEffect(() => {
-    bestellungen.forEach((b) => {
+    bestellungen.filter((b) => b.hatEssen).forEach((b) => {
       if (!b.stornoBannerMs) return;
       if (stornoGesehenRef.current[b.id] === b.stornoBannerMs) return;
       if (Date.now() - b.stornoBannerMs > 10000) { stornoGesehenRef.current[b.id] = b.stornoBannerMs; return; }
@@ -1783,8 +1845,11 @@ function MonitorEssen() {
   };
   // Für Bestellungen, die noch "wartend" sind (keiner Ausgabe zugeteilt),
   // aber schon fertig zubereitet wurden — z.B. wenn das Grillteam mit
-  // Bratwürsten schneller ist als mit den zugeteilten Steaks.
+  // Bratwürsten schneller ist als mit den zugeteilten Steaks. Nur für reine
+  // Essensbestellungen: Mixbestellungen dürfen die Ausgabe nicht überspringen,
+  // da sonst die Getränke nie an der Essensausgabe ankommen.
   const markFertigUndAbgeholt = async (b) => {
+    if (b.hatGetraenke) return;
     const jetzt = Date.now();
     await updateUndPruefeArchivierung(b, {
       essenStatus: "fertig", essenFertigZeitMs: jetzt, essenAbgeholt: true, abschlussZeitMs: jetzt, viaHotkeyMs: jetzt,
@@ -1850,6 +1915,7 @@ function MonitorEssen() {
             }
             const storniert = kuerzlichStorniert(order, now);
             const istFertig = order.essenStatus === "fertig";
+            const wartetAufGetraenke = istFertig && order.hatGetraenke && !order.getraenkeFertig;
             // Timer zeigt die Zeit im aktuellen Status, nicht seit Bestelleingang —
             // startet also bei jedem Statuswechsel wieder bei 0.
             const statusStart = istFertig
@@ -1858,7 +1924,7 @@ function MonitorEssen() {
             const elapsed = now - statusStart;
             const cls = istFertig ? "" : zeitKlasse(elapsed);
             return (
-              <div className={"ausgabe-tile belegt" + (istFertig ? " fertig-gruen" : cls ? " " + cls : "") + (storniert ? " storniert-tile" : "")} key={n}>
+              <div className={"ausgabe-tile belegt" + (istFertig && !wartetAufGetraenke ? " fertig-gruen" : cls ? " " + cls : "") + (storniert ? " storniert-tile" : "")} key={n}>
                 {storniert && <div className="storno-stempel">STORNIERT</div>}
                 <div className="ausgabe-tile-head">
                   <span className="ausgabe-tile-nr">Ausgabe {n}{!offen ? " (schließt nach Abholung)" : ""}</span>
@@ -1878,7 +1944,12 @@ function MonitorEssen() {
                 {!storniert && order.essenStatus === "inBearbeitung" && (
                   <button className="ready-btn" onClick={() => markFertig(order)}>Als fertig markieren</button>
                 )}
-                {!storniert && order.essenStatus === "fertig" && (
+                {!storniert && wartetAufGetraenke && (
+                  <p className="t-hinweis" style={{ color: "var(--led-amber)" }}>
+                    Der Status "fertig" wurde vorgemerkt. Das System wartet auf die Fertigstellung der Getränke.
+                  </p>
+                )}
+                {!storniert && istFertig && !wartetAufGetraenke && (
                   <button className="ready-btn sage" onClick={() => markAbgeholt(order)}>Abgeholt</button>
                 )}
               </div>
@@ -1905,7 +1976,7 @@ function MonitorEssen() {
                       ))}
                     </ul>
                     {b.hinweis && <p className="t-hinweis" style={{ fontSize: 11 }}>{b.hinweis}</p>}
-                    {!storniert && <button className="ready-btn sage klein" onClick={() => markFertigUndAbgeholt(b)}>Fertig &amp; abgeholt</button>}
+                    {!storniert && !b.hatGetraenke && <button className="ready-btn sage klein" onClick={() => markFertigUndAbgeholt(b)}>Fertig &amp; abgeholt</button>}
                   </div>
                 );
               })}
