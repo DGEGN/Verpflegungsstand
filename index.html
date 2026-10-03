@@ -225,13 +225,13 @@
 <script type="module">
   // Firebase-Konfiguration: eigene Projektdaten aus der Firebase-Konsole eintragen
   // (Project Settings -> General -> "Your apps" -> SDK setup and configuration)
- window.firebaseConfig = {
-    apiKey: "AIzaSyA6gB4xskgydH3v6TtmvKpNgjlaSio_8IM",
-  authDomain: "verpflegungsstand.firebaseapp.com",
-  projectId: "verpflegungsstand",
-  storageBucket: "verpflegungsstand.firebasestorage.app",
-  messagingSenderId: "808275832434",
-  appId: "1:808275832434:web:5f476127a341aa4dfd5ceb"
+  window.firebaseConfig = {
+    apiKey: "DEIN_API_KEY",
+    authDomain: "DEIN_PROJEKT.firebaseapp.com",
+    projectId: "DEIN_PROJEKT",
+    storageBucket: "DEIN_PROJEKT.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
   };
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -255,11 +255,11 @@ const { useState, useEffect, useMemo, useRef } = React;
 // anpassen — wer die index.html einsehen kann, sieht auch dieses Passwort,
 // es schützt also nur vor versehentlichem Ändern durch Kassenpersonal,
 // nicht vor absichtlichem Zugriff.
-const ADMIN_PASSWORT = "Kuckuck2026";
+const ADMIN_PASSWORT = "aenderMich123";
 
 // Einfaches Passwort für den Zugriff auf den Kasse-Reiter (kein Konto, nur
 // ein gemeinsames Passwort fürs Kassenpersonal). Vor dem Einsatz anpassen.
-const KASSE_PASSWORT = "Kinderfest2026";
+const KASSE_PASSWORT = "kinderfest";
 
 const KATEGORIEN = [
   { id: "essen", label: "Essen" },
@@ -1253,6 +1253,76 @@ function Kassenbuch() {
   );
 }
 
+// Pfand-Rückgabe: eigenständige Bar-Auszahlung fürs Kassenbuch, unabhängig
+// vom normalen Bestellvorgang — kein Eintrag in Küche/Getränkemonitor, da
+// nichts zubereitet werden muss.
+function PfandRueckgabe({ artikel }) {
+  const pfandArtikel = useMemo(() => artikel.filter((a) => a.kategorie === "pfand" && a.preis > 0), [artikel]);
+  const [mengen, setMengen] = useState({});
+  const [laeuft, setLaeuft] = useState(false);
+  const [erfolg, setErfolg] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (erfolg === null) return;
+    const t = setTimeout(() => setErfolg(null), 3000);
+    return () => clearTimeout(t);
+  }, [erfolg]);
+
+  if (pfandArtikel.length === 0) return null;
+
+  const gesamt = pfandArtikel.reduce((s, a) => s + (mengen[a.id] || 0) * a.preis, 0);
+  const aendern = (id, delta) => setMengen((prev) => {
+    const neu = Math.max(0, (prev[id] || 0) + delta);
+    return { ...prev, [id]: neu };
+  });
+
+  const auszahlen = async () => {
+    if (gesamt <= 0 || laeuft) return;
+    setLaeuft(true);
+    setError("");
+    try {
+      const notiz = pfandArtikel.filter((a) => mengen[a.id] > 0).map((a) => mengen[a.id] + "x " + a.name).join(", ");
+      const { collection, addDoc, serverTimestamp } = window.__fs;
+      await addDoc(collection(window.__db, "kassenbuch"), {
+        art: "auszahlung", betrag: gesamt, notiz: "Pfandrückgabe: " + notiz,
+        erstelltAm: serverTimestamp(), erstelltAmMs: Date.now(),
+      });
+      setErfolg(gesamt);
+      setMengen({});
+    } catch (e) {
+      setError("Pfandrückgabe konnte nicht gebucht werden.");
+    } finally {
+      setLaeuft(false);
+    }
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <div className="grid">
+        {pfandArtikel.map((a) => (
+          <div className="card" key={a.id}>
+            <div>{a.name}</div>
+            <div className="price">{a.preis.toFixed(2)} €</div>
+            <div className="stepper">
+              <button onClick={() => aendern(a.id, -1)} disabled={!mengen[a.id]}>-</button>
+              <span className="qty">{mengen[a.id] || 0}</span>
+              <button onClick={() => aendern(a.id, 1)}>+</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
+        <button className="btn secondary" onClick={auszahlen} disabled={gesamt <= 0 || laeuft}>
+          {laeuft ? "Buche…" : "Pfand auszahlen (" + gesamt.toFixed(2) + " €)"}
+        </button>
+        {erfolg !== null && <span style={{ color: "var(--green)", fontWeight: 700 }}>{erfolg.toFixed(2)} € ins Kassenbuch gebucht</span>}
+      </div>
+      {error && <p style={{ color: "var(--rust)", fontSize: 13 }}>{error}</p>}
+    </div>
+  );
+}
+
 function Kasse() {
   const ready = useFirebaseReady();
   const artikel = useArtikel();
@@ -1558,6 +1628,9 @@ function Kasse() {
           <input placeholder="Hinweis für die Küche (z.B. ohne Zwiebeln)" value={hinweis} onChange={(e) => setHinweis(e.target.value)} />
         </div>
       </div>
+
+      <h2 className="section-title">Pfand-Rückgabe</h2>
+      <PfandRueckgabe artikel={artikel} />
 
       <h2 className="section-title">Aktuelle Bestellungen</h2>
       {aktive.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>Keine offenen Bestellungen.</p>}
