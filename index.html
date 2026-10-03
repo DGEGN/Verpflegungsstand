@@ -225,13 +225,13 @@
 <script type="module">
   // Firebase-Konfiguration: eigene Projektdaten aus der Firebase-Konsole eintragen
   // (Project Settings -> General -> "Your apps" -> SDK setup and configuration)
-window.firebaseConfig = {
-    apiKey: "AIzaSyA6gB4xskgydH3v6TtmvKpNgjlaSio_8IM",
-  authDomain: "verpflegungsstand.firebaseapp.com",
-  projectId: "verpflegungsstand",
-  storageBucket: "verpflegungsstand.firebasestorage.app",
-  messagingSenderId: "808275832434",
-  appId: "1:808275832434:web:5f476127a341aa4dfd5ceb"
+  window.firebaseConfig = {
+    apiKey: "DEIN_API_KEY",
+    authDomain: "DEIN_PROJEKT.firebaseapp.com",
+    projectId: "DEIN_PROJEKT",
+    storageBucket: "DEIN_PROJEKT.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
   };
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -255,11 +255,11 @@ const { useState, useEffect, useMemo, useRef } = React;
 // anpassen — wer die index.html einsehen kann, sieht auch dieses Passwort,
 // es schützt also nur vor versehentlichem Ändern durch Kassenpersonal,
 // nicht vor absichtlichem Zugriff.
-const ADMIN_PASSWORT = "Kuckuck2026";
+const ADMIN_PASSWORT = "aenderMich123";
 
 // Einfaches Passwort für den Zugriff auf den Kasse-Reiter (kein Konto, nur
 // ein gemeinsames Passwort fürs Kassenpersonal). Vor dem Einsatz anpassen.
-const KASSE_PASSWORT = "Kinderfest2026";
+const KASSE_PASSWORT = "kinderfest";
 
 const KATEGORIEN = [
   { id: "essen", label: "Essen" },
@@ -1057,6 +1057,22 @@ function Kassenbuch() {
     () => bestellungen.filter((b) => !b.storniert && !b.personalverpflegung && b.zahlungsart === "karte" && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
     [bestellungen, zurueckgesetztAm]
   );
+  // Artikel-Statistik: wie oft wurde welcher Artikel seit dem letzten
+  // Zurücksetzen bestellt (Menge und Umsatz) — direkt aus den geladenen
+  // Bestellungen berechnet, da Firestore selbst sowas nicht filtern kann.
+  const [zeigeArtikelStatistik, setZeigeArtikelStatistik] = useState(false);
+  const artikelStatistik = useMemo(() => {
+    const relevante = bestellungen.filter((b) => !b.storniert && (b.erstelltAmMs || 0) >= zurueckgesetztAm);
+    const proArtikel = {};
+    relevante.forEach((b) => b.items.forEach((i) => {
+      if (!proArtikel[i.name]) proArtikel[i.name] = { name: i.name, menge: 0, umsatz: 0, bestellungen: 0 };
+      proArtikel[i.name].menge += i.menge;
+      proArtikel[i.name].umsatz += i.preis * i.menge;
+      proArtikel[i.name].bestellungen += 1;
+    }));
+    return Object.values(proArtikel).sort((a, b) => b.menge - a.menge);
+  }, [bestellungen, zurueckgesetztAm]);
+
   const personalBestellungen = useMemo(
     () => bestellungen.filter((b) => !b.storniert && b.personalverpflegung && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
     [bestellungen, zurueckgesetztAm]
@@ -1184,6 +1200,29 @@ function Kassenbuch() {
         <button className="btn" onClick={eintragen}>Eintragen</button>
       </div>
       {error && <p style={{ color: "var(--rust)", fontSize: 13 }}>{error}</p>}
+
+      <h2 className="section-title">Artikel-Statistik</h2>
+      <p style={{ color: "var(--muted)", fontSize: 13, marginTop: -4 }}>Wie oft wurde welcher Artikel seit dem letzten Zurücksetzen bestellt (ohne stornierte Bestellungen).</p>
+      <button className="edit-link" onClick={() => setZeigeArtikelStatistik((v) => !v)}>{zeigeArtikelStatistik ? "Ausblenden" : "Anzeigen"}</button>
+      {zeigeArtikelStatistik && (
+        artikelStatistik.length === 0 ? (
+          <p style={{ color: "var(--muted)", fontSize: 13 }}>Noch keine Bestellungen seit dem letzten Zurücksetzen.</p>
+        ) : (
+          <table style={{ marginTop: 10 }}>
+            <thead><tr><th>Artikel</th><th>Menge</th><th>Bestellungen</th><th>Umsatz</th></tr></thead>
+            <tbody>
+              {artikelStatistik.map((a) => (
+                <tr key={a.name}>
+                  <td>{a.name}</td>
+                  <td>{a.menge}</td>
+                  <td>{a.bestellungen}</td>
+                  <td>{a.umsatz.toFixed(2)} €</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )
+      )}
 
       <h2 className="section-title">Vorverkaufbestand mit Scheinen/Münzen erfassen</h2>
       {!zeigeVorverkauf ? (
