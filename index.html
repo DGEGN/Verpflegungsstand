@@ -261,6 +261,10 @@ const ADMIN_PASSWORT = "Kuckuck2027";
 // ein gemeinsames Passwort fürs Kassenpersonal). Vor dem Einsatz anpassen.
 const KASSE_PASSWORT = "Kinderfest2027";
 
+// Einfaches Passwort für den Zugriff auf den Kasse-Reiter (kein Konto, nur
+// ein gemeinsames Passwort fürs Kassenpersonal). Vor dem Einsatz anpassen.
+const KASSE_PASSWORT = "kinderfest";
+
 const KATEGORIEN = [
   { id: "essen", label: "Essen" },
   { id: "alkoholfrei", label: "Alkoholfreie Getränke" },
@@ -383,6 +387,18 @@ function formatUhrzeit(ms) {
   if (!ms) return null;
   return new Date(ms).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
+// Berechnet Menge/Umsatz/Anzahl je Artikel aus einer Liste von Bestellungen.
+function artikelStatistikBerechnen(bestellungenListe) {
+  const proArtikel = {};
+  bestellungenListe.forEach((b) => b.items.forEach((i) => {
+    if (!proArtikel[i.name]) proArtikel[i.name] = { name: i.name, menge: 0, umsatz: 0, bestellungen: 0 };
+    proArtikel[i.name].menge += i.menge;
+    proArtikel[i.name].umsatz += i.preis * i.menge;
+    proArtikel[i.name].bestellungen += 1;
+  }));
+  return Object.values(proArtikel).sort((a, b) => b.menge - a.menge);
+}
+
 // Exportiert eine Artikel-Statistik als CSV-Datei (öffnet sich in Excel &
 // Co.). ";" als Trenner und "," als Dezimaltrennzeichen, wie in Excel
 // Deutschland üblich.
@@ -582,6 +598,7 @@ function useMitternachtsReset(ready) {
 async function kassenschnittDurchfuehren(bestellungen, kassenbuchBestand, zurueckgesetztAm) {
   const { collection, doc, addDoc, setDoc } = window.__fs;
   const relevant = bestellungen.filter((b) => !b.storniert && (b.erstelltAmMs || 0) >= zurueckgesetztAm && !b.personalverpflegung);
+  const personal = bestellungen.filter((b) => !b.storniert && (b.erstelltAmMs || 0) >= zurueckgesetztAm && b.personalverpflegung);
   const bar = relevant.filter((b) => (b.zahlungsart || "bar") === "bar");
   const karte = relevant.filter((b) => b.zahlungsart === "karte");
   const proKategorie = {};
@@ -605,7 +622,7 @@ async function kassenschnittDurchfuehren(bestellungen, kassenbuchBestand, zuruec
   await setDoc(doc(window.__db, "einstellungen", "verkaufstag"), { tagStartMs: jetzt, tagLabel: heutigesLabel() }, { merge: true });
   await setDoc(doc(window.__db, "einstellungen", "zaehler"), { naechsteNummer: 1 }, { merge: true });
   return {
-    relevant, bar, karte, proKategorie, jetzt, zurueckgesetztAm, kassenbuchBestand, anzahlStorniert,
+    relevant, personal, bar, karte, proKategorie, jetzt, zurueckgesetztAm, kassenbuchBestand, anzahlStorniert,
     bareinnahmen: bar.reduce((s, b) => s + b.gesamtpreis, 0),
     karteneinnahmen: karte.reduce((s, b) => s + b.gesamtpreis, 0),
   };
@@ -665,14 +682,7 @@ function erzeugeKassenschnittPdf(daten) {
   y += 2;
   pdf.line(linksX, y, 196, y);
   y += 4.5;
-  const proArtikel = {};
-  daten.relevant.forEach((b) => b.items.forEach((i) => {
-    if (!proArtikel[i.name]) proArtikel[i.name] = { name: i.name, menge: 0, umsatz: 0, bestellungen: 0 };
-    proArtikel[i.name].menge += i.menge;
-    proArtikel[i.name].umsatz += i.preis * i.menge;
-    proArtikel[i.name].bestellungen += 1;
-  }));
-  Object.values(proArtikel).sort((a, b) => b.menge - a.menge).forEach((a) => {
+  artikelStatistikBerechnen(daten.relevant).forEach((a) => {
     neueSeiteFallsNoetig(5);
     pdf.text(a.name, linksX, y);
     pdf.text(String(a.menge), 130, y, { align: "right" });
@@ -681,6 +691,30 @@ function erzeugeKassenschnittPdf(daten) {
     y += 5;
   });
   y += 6;
+
+  if (daten.personal && daten.personal.length > 0) {
+    neueSeiteFallsNoetig(14);
+    pdf.setFontSize(12);
+    pdf.text("Personalverpflegung (informativ, nicht im Umsatz enthalten)", linksX, y);
+    y += 7;
+    pdf.setFontSize(9);
+    pdf.setFont(undefined, "bold");
+    pdf.text("Artikel", linksX, y);
+    pdf.text("Menge", 130, y, { align: "right" });
+    pdf.text("Bestellungen", 165, y, { align: "right" });
+    pdf.setFont(undefined, "normal");
+    y += 2;
+    pdf.line(linksX, y, 196, y);
+    y += 4.5;
+    artikelStatistikBerechnen(daten.personal).forEach((a) => {
+      neueSeiteFallsNoetig(5);
+      pdf.text(a.name, linksX, y);
+      pdf.text(String(a.menge), 130, y, { align: "right" });
+      pdf.text(String(a.bestellungen), 165, y, { align: "right" });
+      y += 5;
+    });
+    y += 6;
+  }
   neueSeiteFallsNoetig(10);
 
   pdf.setFontSize(12);
@@ -1120,16 +1154,12 @@ function Kassenbuch() {
     const k = kassenschnitte.find((x) => x.id === statistikZeitraum);
     return k ? { von: k.zeitraumVonMs, bis: k.zeitraumBisMs } : { von: zurueckgesetztAm, bis: Infinity };
   }, [statistikZeitraum, kassenschnitte, zurueckgesetztAm]);
-  const artikelStatistik = useMemo(() => {
+  const { artikelStatistikNormal, artikelStatistikPersonal } = useMemo(() => {
     const relevante = bestellungen.filter((b) => !b.storniert && (b.erstelltAmMs || 0) >= statistikSpanne.von && (b.erstelltAmMs || 0) <= statistikSpanne.bis);
-    const proArtikel = {};
-    relevante.forEach((b) => b.items.forEach((i) => {
-      if (!proArtikel[i.name]) proArtikel[i.name] = { name: i.name, menge: 0, umsatz: 0, bestellungen: 0 };
-      proArtikel[i.name].menge += i.menge;
-      proArtikel[i.name].umsatz += i.preis * i.menge;
-      proArtikel[i.name].bestellungen += 1;
-    }));
-    return Object.values(proArtikel).sort((a, b) => b.menge - a.menge);
+    return {
+      artikelStatistikNormal: artikelStatistikBerechnen(relevante.filter((b) => !b.personalverpflegung)),
+      artikelStatistikPersonal: artikelStatistikBerechnen(relevante.filter((b) => b.personalverpflegung)),
+    };
   }, [bestellungen, statistikSpanne]);
 
   const personalBestellungen = useMemo(
@@ -1271,31 +1301,45 @@ function Kassenbuch() {
             ))}
           </select>
         )}
-        {zeigeArtikelStatistik && artikelStatistik.length > 0 && (
-          <button className="btn secondary" onClick={() => exportiereArtikelStatistikCsv(artikelStatistik, statistikZeitraum === "aktuell" ? "aktuell" : formatUhrzeitDatum(statistikSpanne.bis).replace(/[., :]/g, "-"))}>
-            Als CSV exportieren
-          </button>
-        )}
       </div>
-      {zeigeArtikelStatistik && (
-        artikelStatistik.length === 0 ? (
-          <p style={{ color: "var(--muted)", fontSize: 13 }}>Keine Bestellungen in diesem Zeitraum.</p>
-        ) : (
-          <table style={{ marginTop: 10 }}>
-            <thead><tr><th>Artikel</th><th>Menge</th><th>Bestellungen</th><th>Umsatz</th></tr></thead>
-            <tbody>
-              {artikelStatistik.map((a) => (
-                <tr key={a.name}>
-                  <td>{a.name}</td>
-                  <td>{a.menge}</td>
-                  <td>{a.bestellungen}</td>
-                  <td>{a.umsatz.toFixed(2)} €</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )
-      )}
+      {zeigeArtikelStatistik && (() => {
+        const zeitraumDateiname = statistikZeitraum === "aktuell" ? "aktuell" : formatUhrzeitDatum(statistikSpanne.bis).replace(/[., :]/g, "-");
+        const tabelle = (titel, liste, dateiZusatz) => (
+          <div style={{ marginTop: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+              <h3 style={{ fontSize: 14 }}>{titel}</h3>
+              {liste.length > 0 && (
+                <button className="btn secondary small" onClick={() => exportiereArtikelStatistikCsv(liste, zeitraumDateiname + "-" + dateiZusatz)}>
+                  Als CSV exportieren
+                </button>
+              )}
+            </div>
+            {liste.length === 0 ? (
+              <p style={{ color: "var(--muted)", fontSize: 13 }}>Keine Bestellungen in diesem Zeitraum.</p>
+            ) : (
+              <table>
+                <thead><tr><th>Artikel</th><th>Menge</th><th>Bestellungen</th><th>Umsatz</th></tr></thead>
+                <tbody>
+                  {liste.map((a) => (
+                    <tr key={a.name}>
+                      <td>{a.name}</td>
+                      <td>{a.menge}</td>
+                      <td>{a.bestellungen}</td>
+                      <td>{a.umsatz.toFixed(2)} €</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        );
+        return (
+          <>
+            {tabelle("Normalverkauf", artikelStatistikNormal, "normalverkauf")}
+            {tabelle("Personalverpflegung", artikelStatistikPersonal, "personal")}
+          </>
+        );
+      })()}
 
       <h2 className="section-title">Vorverkaufbestand mit Scheinen/Münzen erfassen</h2>
       {!zeigeVorverkauf ? (
