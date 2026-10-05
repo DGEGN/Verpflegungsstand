@@ -225,7 +225,7 @@
 <script type="module">
   // Firebase-Konfiguration: eigene Projektdaten aus der Firebase-Konsole eintragen
   // (Project Settings -> General -> "Your apps" -> SDK setup and configuration)
-window.firebaseConfig = {
+  window.firebaseConfig = {
     apiKey: "AIzaSyA6gB4xskgydH3v6TtmvKpNgjlaSio_8IM",
   authDomain: "verpflegungsstand.firebaseapp.com",
   projectId: "verpflegungsstand",
@@ -255,11 +255,11 @@ const { useState, useEffect, useMemo, useRef } = React;
 // anpassen — wer die index.html einsehen kann, sieht auch dieses Passwort,
 // es schützt also nur vor versehentlichem Ändern durch Kassenpersonal,
 // nicht vor absichtlichem Zugriff.
-const ADMIN_PASSWORT = "Kuckuck2026";
+const ADMIN_PASSWORT = "Kuckuck2027";
 
 // Einfaches Passwort für den Zugriff auf den Kasse-Reiter (kein Konto, nur
 // ein gemeinsames Passwort fürs Kassenpersonal). Vor dem Einsatz anpassen.
-const KASSE_PASSWORT = "Kinderfest2026";
+const KASSE_PASSWORT = "Kinderfest2027";
 
 const KATEGORIEN = [
   { id: "essen", label: "Essen" },
@@ -383,6 +383,24 @@ function formatUhrzeit(ms) {
   if (!ms) return null;
   return new Date(ms).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
+// Exportiert eine Artikel-Statistik als CSV-Datei (öffnet sich in Excel &
+// Co.). ";" als Trenner und "," als Dezimaltrennzeichen, wie in Excel
+// Deutschland üblich.
+function exportiereArtikelStatistikCsv(liste, zeitraumLabel) {
+  const zeilen = [["Artikel", "Menge", "Bestellungen", "Umsatz (€)"].join(";")];
+  liste.forEach((a) => {
+    zeilen.push([a.name, a.menge, a.bestellungen, a.umsatz.toFixed(2).replace(".", ",")].join(";"));
+  });
+  const csv = "\uFEFF" + zeilen.join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "artikel-statistik-" + zeitraumLabel + ".csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function formatUhrzeitDatum(ms) {
   if (!ms) return "–";
   return new Date(ms).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -633,6 +651,37 @@ function erzeugeKassenschnittPdf(daten) {
     y += 5.5;
   });
   y += 6;
+
+  pdf.setFontSize(12);
+  pdf.text("Verkaufte Artikel", linksX, y);
+  y += 7;
+  pdf.setFontSize(9);
+  pdf.setFont(undefined, "bold");
+  pdf.text("Artikel", linksX, y);
+  pdf.text("Menge", 130, y, { align: "right" });
+  pdf.text("Bestellungen", 165, y, { align: "right" });
+  pdf.text("Umsatz", 196, y, { align: "right" });
+  pdf.setFont(undefined, "normal");
+  y += 2;
+  pdf.line(linksX, y, 196, y);
+  y += 4.5;
+  const proArtikel = {};
+  daten.relevant.forEach((b) => b.items.forEach((i) => {
+    if (!proArtikel[i.name]) proArtikel[i.name] = { name: i.name, menge: 0, umsatz: 0, bestellungen: 0 };
+    proArtikel[i.name].menge += i.menge;
+    proArtikel[i.name].umsatz += i.preis * i.menge;
+    proArtikel[i.name].bestellungen += 1;
+  }));
+  Object.values(proArtikel).sort((a, b) => b.menge - a.menge).forEach((a) => {
+    neueSeiteFallsNoetig(5);
+    pdf.text(a.name, linksX, y);
+    pdf.text(String(a.menge), 130, y, { align: "right" });
+    pdf.text(String(a.bestellungen), 165, y, { align: "right" });
+    pdf.text(a.umsatz.toFixed(2) + " €", 196, y, { align: "right" });
+    y += 5;
+  });
+  y += 6;
+  neueSeiteFallsNoetig(10);
 
   pdf.setFontSize(12);
   pdf.text("Bestellungen", linksX, y);
@@ -1057,12 +1106,22 @@ function Kassenbuch() {
     () => bestellungen.filter((b) => !b.storniert && !b.personalverpflegung && b.zahlungsart === "karte" && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
     [bestellungen, zurueckgesetztAm]
   );
-  // Artikel-Statistik: wie oft wurde welcher Artikel seit dem letzten
-  // Zurücksetzen bestellt (Menge und Umsatz) — direkt aus den geladenen
-  // Bestellungen berechnet, da Firestore selbst sowas nicht filtern kann.
+  const kassenschnitte = useKassenschnitte();
+
+  // Artikel-Statistik: wie oft wurde welcher Artikel bestellt (Menge und
+  // Umsatz) — direkt aus den geladenen Bestellungen berechnet, da Firestore
+  // selbst sowas nicht filtern kann. Zeitraum wählbar: aktueller (laufender)
+  // Zeitraum oder einer der vergangenen, bereits abgeschlossenen Kassenschnitte
+  // — die Bestelldaten bleiben ja erhalten, auch nach einem Kassenschnitt.
   const [zeigeArtikelStatistik, setZeigeArtikelStatistik] = useState(false);
+  const [statistikZeitraum, setStatistikZeitraum] = useState("aktuell");
+  const statistikSpanne = useMemo(() => {
+    if (statistikZeitraum === "aktuell") return { von: zurueckgesetztAm, bis: Infinity };
+    const k = kassenschnitte.find((x) => x.id === statistikZeitraum);
+    return k ? { von: k.zeitraumVonMs, bis: k.zeitraumBisMs } : { von: zurueckgesetztAm, bis: Infinity };
+  }, [statistikZeitraum, kassenschnitte, zurueckgesetztAm]);
   const artikelStatistik = useMemo(() => {
-    const relevante = bestellungen.filter((b) => !b.storniert && (b.erstelltAmMs || 0) >= zurueckgesetztAm);
+    const relevante = bestellungen.filter((b) => !b.storniert && (b.erstelltAmMs || 0) >= statistikSpanne.von && (b.erstelltAmMs || 0) <= statistikSpanne.bis);
     const proArtikel = {};
     relevante.forEach((b) => b.items.forEach((i) => {
       if (!proArtikel[i.name]) proArtikel[i.name] = { name: i.name, menge: 0, umsatz: 0, bestellungen: 0 };
@@ -1071,7 +1130,7 @@ function Kassenbuch() {
       proArtikel[i.name].bestellungen += 1;
     }));
     return Object.values(proArtikel).sort((a, b) => b.menge - a.menge);
-  }, [bestellungen, zurueckgesetztAm]);
+  }, [bestellungen, statistikSpanne]);
 
   const personalBestellungen = useMemo(
     () => bestellungen.filter((b) => !b.storniert && b.personalverpflegung && (b.erstelltAmMs || 0) >= zurueckgesetztAm),
@@ -1107,7 +1166,6 @@ function Kassenbuch() {
     setBetrag(""); setNotiz("");
   };
 
-  const kassenschnitte = useKassenschnitte();
   const [schnittLaeuft, setSchnittLaeuft] = useState(false);
   const [zeigeHistorie, setZeigeHistorie] = useState(false);
 
@@ -1202,11 +1260,26 @@ function Kassenbuch() {
       {error && <p style={{ color: "var(--rust)", fontSize: 13 }}>{error}</p>}
 
       <h2 className="section-title">Artikel-Statistik</h2>
-      <p style={{ color: "var(--muted)", fontSize: 13, marginTop: -4 }}>Wie oft wurde welcher Artikel seit dem letzten Zurücksetzen bestellt (ohne stornierte Bestellungen).</p>
-      <button className="edit-link" onClick={() => setZeigeArtikelStatistik((v) => !v)}>{zeigeArtikelStatistik ? "Ausblenden" : "Anzeigen"}</button>
+      <p style={{ color: "var(--muted)", fontSize: 13, marginTop: -4 }}>Wie oft wurde welcher Artikel bestellt (ohne stornierte Bestellungen) — auch für bereits abgeschlossene Kassenschnitte abrufbar, da die Bestelldaten erhalten bleiben.</p>
+      <div className="row-form">
+        <button className="edit-link" onClick={() => setZeigeArtikelStatistik((v) => !v)}>{zeigeArtikelStatistik ? "Ausblenden" : "Anzeigen"}</button>
+        {zeigeArtikelStatistik && (
+          <select value={statistikZeitraum} onChange={(e) => setStatistikZeitraum(e.target.value)}>
+            <option value="aktuell">Aktueller Zeitraum (seit letztem Zurücksetzen)</option>
+            {kassenschnitte.map((k) => (
+              <option key={k.id} value={k.id}>Kassenschnitt {formatUhrzeitDatum(k.erstelltAmMs)}</option>
+            ))}
+          </select>
+        )}
+        {zeigeArtikelStatistik && artikelStatistik.length > 0 && (
+          <button className="btn secondary" onClick={() => exportiereArtikelStatistikCsv(artikelStatistik, statistikZeitraum === "aktuell" ? "aktuell" : formatUhrzeitDatum(statistikSpanne.bis).replace(/[., :]/g, "-"))}>
+            Als CSV exportieren
+          </button>
+        )}
+      </div>
       {zeigeArtikelStatistik && (
         artikelStatistik.length === 0 ? (
-          <p style={{ color: "var(--muted)", fontSize: 13 }}>Noch keine Bestellungen seit dem letzten Zurücksetzen.</p>
+          <p style={{ color: "var(--muted)", fontSize: 13 }}>Keine Bestellungen in diesem Zeitraum.</p>
         ) : (
           <table style={{ marginTop: 10 }}>
             <thead><tr><th>Artikel</th><th>Menge</th><th>Bestellungen</th><th>Umsatz</th></tr></thead>
